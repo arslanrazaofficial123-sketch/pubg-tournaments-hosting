@@ -1,0 +1,13 @@
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export const env = {
+  port: Number(process.env.PORT) || 5000,
+  mongoUri:
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/pubg-tournaments",
+  clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
+  nodeEnv: process.env.NODE_ENV || "development",
+  adminPassword: process.env.ADMIN_PASSWORD || "admin123",
+  jwtSecret: process.env.JWT_SECRET || "pubg_super_secret_key_123_456_789",
+};

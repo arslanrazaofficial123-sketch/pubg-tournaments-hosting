@@ -1,0 +1,27 @@
+import { Router } from "express";
+import {
+  checkUid,
+  getUser,
+  login,
+  lookupPlayer,
+  register,
+  deleteUser,
+  getUsers,
+  verifyAdmin,
+  changeAdminPassword,
+} from "../controllers/authController.js";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
+
+const router = Router();
+
+router.post("/register", register);
+router.post("/login", login);
+router.post("/verify-admin", verifyAdmin);
+router.post("/change-admin-password", requireAdmin, changeAdminPassword);
+router.get("/check-uid/:uid", checkUid);
+router.get("/lookup-player/:uid", lookupPlayer);
+router.get("/users", requireAdmin, getUsers);
+router.get("/users/:uid", requireAuth, getUser);
+router.delete("/users/:uid", requireAuth, deleteUser);
+
+export default router;
