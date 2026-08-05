@@ -20,10 +20,12 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "mongoose": "^8.19.1",
+    "nodemailer": "^9.0.4",
     "typescript": "^5.9.2",
     "uuid": "^14.0.1"
   },
   "devDependencies": {
+    "@types/nodemailer": "^8.0.1",
     "tsx": "^4.20.5"
   }
 }

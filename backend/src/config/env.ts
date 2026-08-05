@@ -10,4 +10,9 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   adminPassword: process.env.ADMIN_PASSWORD || "admin123",
   jwtSecret: process.env.JWT_SECRET || "pubg_super_secret_key_123_456_789",
+  smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+  smtpPort: Number(process.env.SMTP_PORT) || 465,
+  smtpUser: process.env.SMTP_USER || "",
+  smtpPass: process.env.SMTP_PASS || "",
+  alertEmail: process.env.ALERT_EMAIL || "",
 };

@@ -1,56 +1,336 @@
-import { ContentPage } from "@/components/layout/ContentPage";
-import { Mail } from "lucide-react";
+"use client";
 
-export const metadata = {
-  title: "Contact Us | EPIX Esports",
-};
+import { useEffect, useState } from "react";
+import { ContentPage } from "@/components/layout/ContentPage";
+import { apiClient } from "@/services/api/client";
+import {
+  MessageCircle,
+  Mail,
+  Headphones,
+  MapPin,
+  ChevronDown,
+  Send,
+  CheckCircle2,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+
+const WHATSAPP_NUMBER = "923269546755";
+
+const CHANNELS = [
+  {
+    icon: MessageCircle,
+    label: "WhatsApp (fastest)",
+    value: "+92 326 9546755",
+    href: `https://wa.me/${WHATSAPP_NUMBER}`,
+    note: "Instant replies during match hours",
+  },
+  {
+    icon: Mail,
+    label: "Email",
+    value: "arslanrazaofficial123@gmail.com",
+    href: "mailto:arslanrazaofficial123@gmail.com",
+    note: "Replies within 24 hours",
+  },
+  {
+    icon: Headphones,
+    label: "Discord",
+    value: "epixesportn",
+    note: "Community voice & announcements",
+  },
+  {
+    icon: MapPin,
+    label: "Based in",
+    value: "Pakistan · Online tournaments worldwide",
+    note: "Open to players across the globe",
+  },
+];
+
+const FAQS = [
+  {
+    q: "When do I receive my prize money?",
+    a: "Prizes are paid via JazzCash / EasyPaisa within 24 hours after results are verified. If it's been longer, message us on WhatsApp with your tournament name.",
+  },
+  {
+    q: "How do I get my lobby room ID?",
+    a: "Lobby IDs and passwords are shared on WhatsApp 30 minutes before every match. Make sure the number on your account is correct.",
+  },
+  {
+    q: "Can I get a refund?",
+    a: "Refunds are only issued if we cancel a tournament. See Rules & Terms for full details.",
+  },
+  {
+    q: "I want to sponsor or host my own tournament on EPIX — how?",
+    a: "Great! Email us at arslanrazaofficial123@gmail.com with your proposal — we'll set up a custom event for you.",
+  },
+];
 
 export default function ContactPage() {
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = "Contact Us | EPIX Esports";
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const name = (formData.get("name") as string) || "";
+    const contact = (formData.get("contact") as string) || "";
+    const topic = (formData.get("topic") as string) || "";
+    const message = (formData.get("message") as string) || "";
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient("/contact", {
+        method: "POST",
+        body: JSON.stringify({ name, contact, topic, message }),
+      });
+      form.reset();
+      setSent(true);
+    } catch (err) {
+      const messageText =
+        err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(messageText);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <ContentPage
       heading="Contact Us"
-      description="Have a question about registration, rules, or partnerships? Reach out — we typically respond within 24 hours."
+      description="Questions about tournaments, payouts or registrations? We reply fast — usually within a few hours."
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* WhatsApp */}
-        <a
-          href="https://wa.me/923269546755"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center justify-center p-8 rounded-2xl border border-border bg-bg-secondary text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5 group"
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent group-hover:bg-accent/15 transition-colors mb-4">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.746.953 3.71 1.458 5.704 1.459h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-text-primary/40 group-hover:text-accent transition-colors">WhatsApp</span>
-          <span className="text-base font-bold text-text-primary mt-1">+92 326 9546755</span>
-        </a>
-
-        {/* Email */}
-        <a
-          href="mailto:arslanrazaofficial123@gmail.com"
-          className="flex flex-col items-center justify-center p-8 rounded-2xl border border-border bg-bg-secondary text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5 group"
-        >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent group-hover:bg-accent/15 transition-colors mb-4">
-            <Mail className="w-7 h-7" />
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-text-primary/40 group-hover:text-accent transition-colors">Email</span>
-          <span className="text-sm font-bold text-text-primary mt-1 break-all">arslanrazaofficial123@gmail.com</span>
-        </a>
-
-        {/* Discord */}
-        <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-border bg-bg-secondary text-center transition-all hover:border-accent/30 hover:shadow-xl hover:shadow-accent/5 group">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent group-hover:bg-accent/15 transition-colors mb-4">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7">
-              <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028 14.09 14.09 0 001.226-1.994.076.076 0 00-.041-.106 13.107 13.107 0 01-1.873-.894.077.077 0 01-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 01.077-.011 13.984 13.984 0 0012.012 0 .073.073 0 01.078.009c.12.099.246.195.373.289a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.894.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z" />
-            </svg>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-text-primary/40 group-hover:text-accent transition-colors">Discord</span>
-          <span className="text-base font-bold text-text-primary mt-1">epixesportn</span>
-        </div>
+      {/* Response time chips */}
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-300">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          Under 4 hours
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-accent">
+          24/7 WhatsApp support
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-wider text-text-primary/60">
+          Avg. reply time &lt; 4h
+        </span>
       </div>
+
+      {/* Contact channels */}
+      <section className="rounded-xl border border-border bg-bg-secondary p-6 sm:p-8">
+        <h2 className="mb-1 text-xl font-semibold text-text-primary">Reach us directly</h2>
+        <p className="mb-6 text-sm text-text-primary/50">
+          Pick whichever channel you prefer — all monitored daily.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {CHANNELS.map((channel, i) => {
+            const Icon = channel.icon;
+            const inner = (
+              <>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors group-hover:bg-accent/15">
+                  <Icon size={20} />
+                </div>
+                <div className="min-w-0">
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-text-primary/40">
+                    {channel.label}
+                  </span>
+                  <span className="mt-0.5 block break-all text-sm font-bold text-text-primary">
+                    {channel.value}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-text-primary/45">
+                    {channel.note}
+                  </span>
+                </div>
+              </>
+            );
+            return channel.href ? (
+              <a
+                key={i}
+                href={channel.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 rounded-2xl border border-border bg-bg-primary/40 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5"
+              >
+                {inner}
+              </a>
+            ) : (
+              <div
+                key={i}
+                className="group flex items-center gap-4 rounded-2xl border border-border bg-bg-primary/40 p-5"
+              >
+                {inner}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Message form */}
+      <section className="rounded-xl border border-accent/25 bg-bg-secondary p-6 sm:p-8">
+        <h2 className="mb-1 text-xl font-semibold text-text-primary">Send us a message</h2>
+        <p className="mb-6 text-sm text-text-primary/50">
+          We'll get back to you on WhatsApp or email.
+        </p>
+        {sent ? (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-400/30 bg-emerald-400/10 p-5 text-sm font-semibold text-emerald-300">
+            <CheckCircle2 size={20} />
+            Message sent! Our team will reply by email or WhatsApp shortly.
+          </div>
+        ) : (
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-primary/50">
+                  Your Name
+                </label>
+                <input
+                  name="name"
+                  required
+                  type="text"
+                  placeholder="e.g. Arslan"
+                  className="w-full rounded-lg border border-border bg-bg-primary/60 px-4 py-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-primary/30 focus:border-accent"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-primary/50">
+                  Email / PUBG ID
+                </label>
+                <input
+                  name="contact"
+                  required
+                  type="text"
+                  placeholder="your@email.com or 5-digit PUBG ID"
+                  className="w-full rounded-lg border border-border bg-bg-primary/60 px-4 py-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-primary/30 focus:border-accent"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-primary/50">
+                Topic
+              </label>
+              <select
+                name="topic"
+                className="w-full rounded-lg border border-border bg-bg-primary/60 px-4 py-3 text-sm text-text-primary outline-none transition-colors focus:border-accent"
+              >
+                <option>Tournament registration</option>
+                <option>Prize / payout issue</option>
+                <option>Report a player (cheating)</option>
+                <option>Sponsorship / partnership</option>
+                <option>Something else</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-primary/50">
+                Message
+              </label>
+              <textarea
+                name="message"
+                required
+                rows={5}
+                placeholder="Tell us what's on your mind..."
+                className="w-full resize-y rounded-lg border border-border bg-bg-primary/60 px-4 py-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-primary/30 focus:border-accent"
+              />
+            </div>
+            {error && (
+              <div className="rounded-lg border border-red-400/30 bg-red-400/10 p-4 text-sm font-semibold text-red-300">
+                {error}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-bold uppercase tracking-wider text-bg-primary shadow-lg shadow-accent/20 transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                {submitting ? "Sending..." : "Send Message"}
+              </button>
+              <span className="text-xs text-text-primary/50">
+                Prefer chat? Tap the WhatsApp bubble at the corner.
+              </span>
+            </div>
+          </form>
+        )}
+      </section>
+
+      {/* FAQ */}
+      <section className="rounded-xl border border-border bg-bg-secondary p-6 sm:p-8">
+        <h2 className="mb-1 text-xl font-semibold text-text-primary">Quick Answers</h2>
+        <p className="mb-6 text-sm text-text-primary/50">Most common questions we get</p>
+        <div className="space-y-3">
+          {FAQS.map((faq, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <div
+                key={i}
+                className={`overflow-hidden rounded-xl border transition-colors ${
+                  isOpen ? "border-accent/40" : "border-white/10"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-bold text-text-primary transition-colors hover:text-accent"
+                >
+                  {faq.q}
+                  <ChevronDown
+                    size={16}
+                    className={`shrink-0 text-accent transition-transform duration-300 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {isOpen && (
+                  <p className="px-5 pb-4 text-sm leading-relaxed text-text-primary/60">
+                    {faq.a}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Community CTA */}
+      <section className="overflow-hidden rounded-2xl border border-accent/25 bg-bg-secondary p-8 text-center sm:p-10">
+        <div className="mx-auto max-w-xl">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+            <Sparkles size={22} />
+          </div>
+          <h2 className="text-2xl font-black text-text-primary">
+            Never miss a battle —{" "}
+            <span className="bg-linear-to-r from-emerald-400 to-accent bg-clip-text text-transparent">
+              join the community
+            </span>
+          </h2>
+          <p className="mt-3 text-sm text-text-primary/50">
+            Get tournament alerts, lobby codes and results straight to your phone.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40"
+            >
+              <MessageCircle size={16} />
+              Join WhatsApp Group
+            </a>
+            <span className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-6 py-3 text-sm font-bold uppercase tracking-wider text-text-primary/70">
+              <Headphones size={16} />
+              Discord Server
+            </span>
+          </div>
+        </div>
+      </section>
     </ContentPage>
   );
 }
