@@ -12,7 +12,7 @@ import {
   changeAdminPassword,
   changePartnerPassword,
 } from "../controllers/authController.js";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -24,8 +24,8 @@ router.post("/change-admin-password", requireAdmin, changeAdminPassword);
 router.post("/change-partner-password", requireAdmin, changePartnerPassword);
 router.get("/check-uid/:uid", checkUid);
 router.get("/lookup-player/:uid", lookupPlayer);
-router.get("/users", requireAdmin, getUsers);
+router.get("/users", requireStaff, getUsers);
 router.get("/users/:uid", requireAuth, getUser);
-router.delete("/users/:uid", requireAuth, deleteUser);
+router.delete("/users/:uid", requireAdmin, deleteUser);
 
 export default router;
