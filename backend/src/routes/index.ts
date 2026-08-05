@@ -5,6 +5,7 @@ import matchRoutes from "./matchRoutes.js";
 import reviewRoutes from "./reviewRoutes.js";
 import contactRoutes from "./contactRoutes.js";
 import errorReportRoutes from "./errorReportRoutes.js";
+import adminRoutes from "./adminRoutes.js";
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use("/matches", matchRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/contact", contactRoutes);
 router.use("/error-report", errorReportRoutes);
+router.use("/admin", adminRoutes);
 
 router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
