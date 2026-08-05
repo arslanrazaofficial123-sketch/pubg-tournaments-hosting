@@ -6,17 +6,7 @@ export function Footer() {
           &copy; {new Date().getFullYear()} EPIX Esports. All rights
           reserved.
         </p>
-        <p className="text-xs text-text-primary/40">
-          Developed by{" "}
-          <a
-            href="https://devorbs.tech"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent hover:underline font-semibold"
-          >
-            Devorbs
-          </a>
-        </p>
+        
       </div>
     </footer>
   );
