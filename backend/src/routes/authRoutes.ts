@@ -8,7 +8,9 @@ import {
   deleteUser,
   getUsers,
   verifyAdmin,
+  verifyPartner,
   changeAdminPassword,
+  changePartnerPassword,
 } from "../controllers/authController.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
@@ -17,7 +19,9 @@ const router = Router();
 router.post("/register", register);
 router.post("/login", login);
 router.post("/verify-admin", verifyAdmin);
+router.post("/verify-partner", verifyPartner);
 router.post("/change-admin-password", requireAdmin, changeAdminPassword);
+router.post("/change-partner-password", requireAdmin, changePartnerPassword);
 router.get("/check-uid/:uid", checkUid);
 router.get("/lookup-player/:uid", lookupPlayer);
 router.get("/users", requireAdmin, getUsers);

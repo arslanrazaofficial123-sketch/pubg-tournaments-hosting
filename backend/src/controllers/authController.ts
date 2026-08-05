@@ -139,6 +139,60 @@ export const verifyAdmin = asyncHandler(async (req: Request, res: Response) => {
   }
 });
 
+export const verifyPartner = asyncHandler(async (req: Request, res: Response) => {
+  const { password } = req.body;
+  if (!password) {
+    res.status(400).json({ success: false, message: "Password is required" });
+    return;
+  }
+
+  const setting = await AdminSettingModel.findOne({ key: "partner_password" });
+  let isValid = false;
+  if (setting) {
+    isValid = await bcrypt.compare(password, setting.value);
+  } else {
+    isValid = (password === env.partnerPassword);
+  }
+
+  if (isValid) {
+    const token = signToken({ uid: "partner", role: "partner" });
+    res.json({ success: true, token });
+  } else {
+    res.status(401).json({ success: false, message: "Incorrect password" });
+  }
+});
+
+export const changePartnerPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ message: "Current password and new password are required" });
+    return;
+  }
+
+  const setting = await AdminSettingModel.findOne({ key: "partner_password" });
+  let isCurrentValid = false;
+  if (setting) {
+    isCurrentValid = await bcrypt.compare(currentPassword, setting.value);
+  } else {
+    isCurrentValid = (currentPassword === env.partnerPassword);
+  }
+
+  if (!isCurrentValid) {
+    res.status(400).json({ message: "Incorrect current partner password" });
+    return;
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+  await AdminSettingModel.findOneAndUpdate(
+    { key: "partner_password" },
+    { value: newHash },
+    { upsert: true, new: true }
+  );
+
+  res.json({ success: true, message: "Partner password updated successfully" });
+});
+
 export const changeAdminPassword = asyncHandler(async (req: Request, res: Response) => {
   const { currentPassword, newPassword } = req.body;
 

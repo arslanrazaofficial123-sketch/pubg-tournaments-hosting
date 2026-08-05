@@ -5,7 +5,7 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     uid: string;
     inGameName?: string;
-    role: "user" | "admin";
+    role: "user" | "admin" | "partner";
   };
 }
 
@@ -37,6 +37,17 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     const authReq = req as AuthenticatedRequest;
     if (authReq.user?.role !== "admin") {
       res.status(403).json({ message: "Access denied. Administrator privileges required." });
+      return;
+    }
+    next();
+  });
+}
+
+export function requireStaff(req: Request, res: Response, next: NextFunction) {
+  requireAuth(req, res, () => {
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role !== "admin" && authReq.user?.role !== "partner") {
+      res.status(403).json({ message: "Access denied. Staff privileges required." });
       return;
     }
     next();

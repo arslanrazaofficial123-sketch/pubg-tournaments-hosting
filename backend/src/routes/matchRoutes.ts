@@ -5,13 +5,13 @@ import {
   deleteMatch,
   updateExistingMatch,
 } from "../controllers/matchController.js";
-import { requireAdmin } from "../middleware/auth.js";
+import { requireStaff } from "../middleware/auth.js";
 
 const router = Router();
 
 router.get("/", getMatchesList);
-router.post("/", requireAdmin, createNewMatch);
-router.put("/:id", requireAdmin, updateExistingMatch);
-router.delete("/:id", requireAdmin, deleteMatch);
+router.post("/", requireStaff, createNewMatch);
+router.put("/:id", requireStaff, updateExistingMatch);
+router.delete("/:id", requireStaff, deleteMatch);
 
 export default router;
