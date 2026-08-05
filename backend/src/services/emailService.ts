@@ -40,3 +40,43 @@ export async function sendContactAlert(data: ContactMessageInput): Promise<void>
     text: body,
   });
 }
+
+export interface ErrorAlertInput {
+  source: string;
+  message: string;
+  stack?: string;
+  url?: string;
+  method?: string;
+  statusCode?: number;
+  timestamp?: string;
+}
+
+export async function sendErrorAlert(data: ErrorAlertInput): Promise<void> {
+  const subject = `[EPIX ERROR] ${data.source} - ${(data.message || "Unknown error").slice(0, 120)}`;
+  const body = [
+    "An error was reported on the EPIX Esports platform.",
+    "",
+    `Source: ${data.source}`,
+    `Time: ${data.timestamp || new Date().toISOString()}`,
+    `URL: ${data.url || "-"}`,
+    `Method: ${data.method || "-"}`,
+    data.statusCode ? `HTTP Status: ${data.statusCode}` : "",
+    "",
+    "Message:",
+    data.message,
+    "",
+    data.stack ? "Stack trace:" : "",
+    data.stack || "",
+    "",
+    "This alert was generated automatically. If it repeats, review the service logs.",
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
+
+  await transporter.sendMail({
+    from: `"EPIX Esports Alerts" <${env.smtpUser}>`,
+    to: env.alertEmail,
+    subject,
+    text: body,
+  });
+}

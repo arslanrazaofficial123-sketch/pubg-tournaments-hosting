@@ -1,11 +1,49 @@
 import { createApp } from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
-import { TournamentModel } from "./models/Tournament.js";
-import { seedTournaments } from "./data/seedTournaments.js";
+import { sendErrorAlert } from "./services/emailService.js";
+
+let lastAlertAt = 0;
+const ALERT_COOLDOWN_MS = 60_000;
+
+function canSendAlert(): boolean {
+  const now = Date.now();
+  if (now - lastAlertAt < ALERT_COOLDOWN_MS) return false;
+  lastAlertAt = now;
+  return true;
+}
+
+function reportUnhandled(source: string, error: unknown) {
+  if (!env.smtpUser || !env.alertEmail || !canSendAlert()) return;
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error(`[${source}]`, error);
+  sendErrorAlert({
+    source,
+    message,
+    stack,
+    url: "server process",
+    statusCode: 500,
+  }).catch((emailErr) => {
+    console.error("Failed to send error alert email:", emailErr);
+  });
+}
+
+process.on("unhandledRejection", (reason) => {
+  reportUnhandled("Backend / Unhandled Rejection", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  reportUnhandled("Backend / Uncaught Exception", error);
+});
 
 async function bootstrap() {
-  await connectDatabase();
+  try {
+    await connectDatabase();
+  } catch (error) {
+    reportUnhandled("Backend / Database Connection", error);
+    throw error;
+  }
 
   const app = createApp();
 
@@ -15,6 +53,7 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
+  reportUnhandled("Backend / Startup", error);
   console.error("Failed to start server:", error);
   process.exit(1);
 });

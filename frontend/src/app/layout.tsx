@@ -5,6 +5,8 @@ import { AlertProvider } from "@/components/ui";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ActivityTrackerInitializer from "@/components/ActivityTrackerInitializer";
+import { ErrorMonitor } from "@/components/ErrorMonitor";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -28,9 +30,12 @@ export default function RootLayout({
     <html lang="en" className={`${poppins.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col antialiased" suppressHydrationWarning>
         <AlertProvider>
-          <ActivityTrackerInitializer />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <ErrorMonitor />
+          <ErrorBoundary>
+            <ActivityTrackerInitializer />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </ErrorBoundary>
         </AlertProvider>
         <Analytics />
         <SpeedInsights />
