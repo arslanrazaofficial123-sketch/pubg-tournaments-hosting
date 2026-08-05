@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, type Registration } from "@/services/api/tournaments";
 import { fetchMatches, createMatch, deleteMatch, updateMatch } from "@/services/api/matches";
+import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
+import type { Review } from "@/types/review";
 import { fetchAllUsers, deleteAccount, verifyAdminPassword, changeAdminPassword } from "@/services/api/auth";
 import { TournamentModal } from "@/features/tournaments/components/TournamentModal";
 import { AddTournamentModal } from "@/features/tournaments/components/AddTournamentModal";
@@ -11,9 +13,9 @@ import type { Tournament } from "@/types/tournament";
 import type { UserProfile } from "@/types/auth";
 import { Button, Modal, useAlert } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings } from "lucide-react";
+import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare } from "lucide-react";
 
-type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards";
+type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews";
 
 function EmptyState({ message }: { message: string }) {
   return (
@@ -279,6 +281,48 @@ export default function AdminDashboard() {
       loadMatches();
     }
   }, [activeTab, activeMatchTournamentId, activeMatchDay]);
+
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsStatusFilter, setReviewsStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (activeTab !== "reviews") return;
+    async function loadReviews() {
+      try {
+        const list = await getAdminReviews(reviewsStatusFilter === "all" ? undefined : reviewsStatusFilter);
+        setReviews(list);
+      } catch (err) {
+        console.error("Failed to fetch reviews:", err);
+      }
+    }
+    loadReviews();
+  }, [activeTab, reviewsStatusFilter]);
+
+  const handleReviewStatus = async (review: Review, status: "pending" | "approved" | "rejected") => {
+    try {
+      await updateReviewStatus(review.id, status);
+      const list = await getAdminReviews(reviewsStatusFilter === "all" ? undefined : reviewsStatusFilter);
+      setReviews(list);
+      showAlert(`Review ${status === "approved" ? "approved" : status === "rejected" ? "rejected" : "moved to pending"} successfully.`, "success");
+    } catch (err) {
+      console.error("Failed to update review status:", err);
+      showAlert("Failed to update review status.", "error");
+    }
+  };
+
+  const handleDeleteReview = (review: Review) => {
+    showConfirm(`Are you sure you want to permanently delete the review by "${review.name}"?`, async () => {
+      try {
+        await deleteReview(review.id);
+        const list = await getAdminReviews(reviewsStatusFilter === "all" ? undefined : reviewsStatusFilter);
+        setReviews(list);
+        showAlert("Review deleted successfully.", "success");
+      } catch (err) {
+        console.error("Failed to delete review:", err);
+        showAlert("Failed to delete review.", "error");
+      }
+    });
+  };
 
   const handleCreateMatchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -625,6 +669,11 @@ export default function AdminDashboard() {
                 id: "matches",
                 label: "Matches",
                 icon: <Calendar className="w-5 h-5 shrink-0" />,
+              },
+              {
+                id: "reviews",
+                label: "Reviews",
+                icon: <MessageSquare className="w-5 h-5 shrink-0" />,
               },
               {
                 id: "leaderboards",
@@ -1567,6 +1616,116 @@ export default function AdminDashboard() {
                     </div>
                   );
                 })())}
+            </div>
+          ) : activeTab === "reviews" ? (
+            <div className="space-y-8 max-w-7xl mx-auto animate-fade-in-up">
+              {/* Status filter */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-3">
+                <h3 className="text-lg font-bold text-text-primary uppercase tracking-tight">Player Reviews</h3>
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {[
+                    { id: "all", label: "All" },
+                    { id: "pending", label: "Pending" },
+                    { id: "approved", label: "Approved" },
+                    { id: "rejected", label: "Rejected" },
+                  ].map((f) => {
+                    const isActive = reviewsStatusFilter === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setReviewsStatusFilter(f.id)}
+                        className={cn(
+                          "relative block px-4 py-2.5 text-sm font-medium transition-all duration-300 cursor-pointer",
+                          isActive
+                            ? "text-text-primary font-semibold"
+                            : "text-text-primary/60 hover:text-text-primary/95"
+                        )}
+                      >
+                        {f.label}
+                        <span
+                          className={cn(
+                            "absolute bottom-0 left-4 right-4 h-0.5 rounded-full bg-accent transition-all duration-300 origin-center",
+                            isActive ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
+                          )}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {reviews.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="bg-bg-secondary border border-border rounded-2xl p-5 shadow-md flex flex-col justify-between relative group">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-sm font-extrabold">
+                              {(review.name || "E").slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="block font-extrabold text-text-primary text-sm truncate">{review.name}</span>
+                              <span className="block text-[11px] text-text-primary/50 truncate">{review.tournament}</span>
+                            </div>
+                          </div>
+                          <span
+                            className={cn(
+                              "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0",
+                              review.status === "approved"
+                                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                                : review.status === "rejected"
+                                ? "bg-red-500/10 border border-red-500/30 text-red-400"
+                                : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                            )}
+                          >
+                            {review.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-amber-400">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <svg key={i} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={i < review.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          ))}
+                          <span className="ml-2 text-xs font-semibold text-text-primary/50">{review.helpful} helpful</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-text-primary/70">{review.text}</p>
+                        <div className="text-[11px] text-text-primary/40">
+                          Submitted {new Date(review.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
+                        {review.status !== "approved" && (
+                          <button
+                            onClick={() => handleReviewStatus(review, "approved")}
+                            className="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {review.status !== "rejected" && (
+                          <button
+                            onClick={() => handleReviewStatus(review, "rejected")}
+                            className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-xs font-semibold text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteReview(review)}
+                          className="px-2.5 py-1 rounded bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState message="No reviews found." />
+              )}
             </div>
           ) : activeTab === "settings" ? (
             <div className="max-w-xl animate-fade-in-up space-y-6">

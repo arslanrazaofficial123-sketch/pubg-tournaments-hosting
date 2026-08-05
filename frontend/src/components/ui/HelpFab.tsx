@@ -3,7 +3,7 @@ import { MessageCircle, Phone } from "lucide-react";
 export function HelpFab() {
   return (
     <a
-      href="https://wa.me/923097955177"
+      href="https://wa.me/923269546755"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Contact support on WhatsApp"

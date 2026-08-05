@@ -11,3 +11,4 @@ export {
   getTournaments,
   getTournamentsByStatus,
 } from "./tournaments";
+export { getReviews, submitReview, likeReview } from "./reviews";
