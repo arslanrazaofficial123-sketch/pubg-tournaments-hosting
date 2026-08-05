@@ -17,17 +17,14 @@ export const getDatabaseStats = asyncHandler(async (_req: Request, res: Response
       .map((c) => c.name)
       .filter((name) => !name.startsWith("system."))
       .map(async (name) => {
-        const coll = db.collection(name) as unknown as {
-          stats(): Promise<{
-            count: number;
-            avgObjSize: number;
-            size: number;
-            storageSize: number;
-            totalIndexSize: number;
-            nindexes: number;
-          }>;
+        const stats = (await db.command({ collStats: name, scale: 1 })) as unknown as {
+          count: number;
+          avgObjSize: number;
+          size: number;
+          storageSize: number;
+          totalIndexSize: number;
+          nindexes: number;
         };
-        const stats = await coll.stats();
         return {
           name,
           count: stats.count ?? 0,
