@@ -5,6 +5,7 @@ const registrationSchema = new Schema(
     id: { type: String, required: true, unique: true },
     tournamentId: { type: String, required: true },
     teamName: { type: String },
+    teamLogo: { type: String },
     group: { type: String, required: true },
     whatsapp: { type: String, required: true },
     receiptImage: { type: String, required: true },
@@ -18,6 +19,7 @@ const registrationSchema = new Schema(
       {
         uid: { type: String, required: true },
         inGameName: { type: String, required: true },
+        picture: { type: String },
       },
     ],
     kills: { type: Number, default: 0 },

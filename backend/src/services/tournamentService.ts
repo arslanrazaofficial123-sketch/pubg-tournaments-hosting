@@ -100,10 +100,11 @@ export async function registerPlayerForTournament(
   tournamentId: string,
   payload: {
     teamName?: string;
+    teamLogo?: string;
     whatsapp: string;
     receiptImage: string;
     transactionId: string;
-    members: Array<{ uid: string; inGameName: string }>;
+    members: Array<{ uid: string; inGameName: string; picture?: string }>;
     group?: string;
   },
 ): Promise<any> {
@@ -168,12 +169,17 @@ export async function registerPlayerForTournament(
     id,
     tournamentId,
     teamName: payload.teamName,
+    teamLogo: payload.teamLogo,
     group: assignedGroup,
     whatsapp: payload.whatsapp,
     receiptImage: payload.receiptImage,
     transactionId: payload.transactionId,
     status: "pending",
-    members: payload.members,
+    members: payload.members.map((m) => ({
+      uid: m.uid,
+      inGameName: m.inGameName,
+      picture: m.picture,
+    })),
   });
 
   await TournamentModel.updateOne(
