@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import type { AuthenticatedRequest } from "../middleware/auth.js";
 import {
   findUserByUid,
   isUidAvailable,
@@ -8,6 +9,8 @@ import {
   deleteUserByUid,
   getAllUsers,
   findOrCreateUser,
+  googleSignIn,
+  linkUidToUser,
 } from "../services/authService.js";
 import { lookupPlayerByUid } from "../services/playerLookupService.js";
 import { env } from "../config/env.js";
@@ -39,6 +42,64 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   const token = signToken({ uid: user.uid, role: "user" });
   res.json({ ...user, token });
+});
+
+export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { credential } = req.body;
+
+  if (!credential || typeof credential !== "string") {
+    res.status(400).json({ message: "Google credential is required" });
+    return;
+  }
+
+  try {
+    const user = await googleSignIn(credential);
+    const token = signToken({ uid: user.uid, role: "user" });
+    res.json({ ...user, token });
+  } catch (error: any) {
+    if (error?.message === "GOOGLE_NOT_CONFIGURED") {
+      res.status(503).json({ message: "Google sign-in is not configured yet" });
+      return;
+    }
+    res.status(401).json({ message: "Google sign-in failed. Please try again." });
+  }
+});
+
+export const linkUid = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const currentUid = authReq.user?.uid;
+  const { uid } = req.body;
+
+  if (!currentUid) {
+    res.status(401).json({ message: "Not authenticated" });
+    return;
+  }
+
+  if (!uid || !String(uid).trim()) {
+    res.status(400).json({ message: "UID is required" });
+    return;
+  }
+
+  if (!isIntegerOnly(String(uid).trim())) {
+    res.status(400).json({ message: "UID must contain integers only" });
+    return;
+  }
+
+  try {
+    const user = await linkUidToUser(currentUid, String(uid).trim());
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    const token = signToken({ uid: user.uid, role: "user" });
+    res.json({ ...user, token });
+  } catch (error: any) {
+    if (error?.message === "UID_ALREADY_LINKED") {
+      res.status(409).json({ message: "This UID is already linked to another account" });
+      return;
+    }
+    throw error;
+  }
 });
 
 export const checkUid = asyncHandler(async (req: Request, res: Response) => {

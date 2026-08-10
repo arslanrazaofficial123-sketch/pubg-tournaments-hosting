@@ -2,6 +2,9 @@ export interface UserProfile {
   uid: string;
   inGameName: string;
   whatsapp: string;
+  email?: string;
+  name?: string;
+  googleId?: string;
 }
 
 export interface RegisterPayload {

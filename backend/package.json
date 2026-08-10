@@ -20,6 +20,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "google-auth-library": "^11.0.0",
     "mongoose": "^8.19.1",
     "nodemailer": "^9.0.4",
     "typescript": "^5.9.2",

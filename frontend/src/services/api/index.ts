@@ -3,6 +3,8 @@ export {
   checkUidAvailable,
   fetchUserByUid,
   loginAccount,
+  googleSignIn,
+  linkUidToAccount,
   lookupPlayerByUid,
   registerAccount,
 } from "./auth";

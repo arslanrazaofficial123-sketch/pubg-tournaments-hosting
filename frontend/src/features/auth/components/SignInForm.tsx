@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button, Input } from "@/components/ui";
 import { isLoggedIn as checkLoggedIn, setSession } from "@/lib/auth";
 import { isIntegerOnly, sanitizeIntegerInput } from "@/lib/validation";
-import { ApiError, loginAccount } from "@/services/api";
+import { ApiError, loginAccount, googleSignIn } from "@/services/api";
 import type { SignInFormData } from "@/types/auth";
 import { AuthFormLayout } from "./AuthFormLayout";
+import { GoogleSignInButton } from "./GoogleSignInButton";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 const INITIAL_FORM: SignInFormData = {
   uid: "",
@@ -87,6 +90,28 @@ export function SignInForm({ onSuccess, onToggleView, isModal = false }: SignInF
     }
   };
 
+  const handleGoogleSuccess = async (credential: string) => {
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const user = await googleSignIn(credential);
+      setSession(user);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError("Google sign-in failed. Please try again.");
+      }
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <AuthFormLayout
       title="Link Player UID"
@@ -97,6 +122,23 @@ export function SignInForm({ onSuccess, onToggleView, isModal = false }: SignInF
       isModal={isModal}
       onFooterLinkClick={undefined}
     >
+      {GOOGLE_CLIENT_ID && (
+        <div className="mb-5 space-y-4">
+          <GoogleSignInButton
+            clientId={GOOGLE_CLIENT_ID}
+            onSuccess={handleGoogleSuccess}
+            onError={(message) => setSubmitError(message)}
+          />
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs uppercase tracking-wider text-text-primary/40">
+              or with UID
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <Input
           label="Unique ID (UID) *"

@@ -16,4 +16,5 @@ export const env = {
   smtpUser: process.env.SMTP_USER || "",
   smtpPass: process.env.SMTP_PASS || "",
   alertEmail: process.env.ALERT_EMAIL || "",
+  googleClientId: process.env.GOOGLE_CLIENT_ID || "",
 };

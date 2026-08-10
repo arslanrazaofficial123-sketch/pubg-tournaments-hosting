@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
-import { Button, useAlert } from "@/components/ui";
+import { Button, Input, useAlert } from "@/components/ui";
 import { TournamentModal } from "@/features/tournaments/components/TournamentModal";
-import { getSessionUser, isLoggedIn as checkLoggedIn, logout } from "@/lib/auth";
+import { getSessionUser, isLoggedIn as checkLoggedIn, logout, setSession } from "@/lib/auth";
+import { isIntegerOnly, sanitizeIntegerInput } from "@/lib/validation";
 import { getTournaments, fetchAllRegistrations } from "@/services/api/tournaments";
 import { fetchMatches } from "@/services/api/matches";
-import { deleteAccount } from "@/services/api/auth";
+import { deleteAccount, linkUidToAccount } from "@/services/api/auth";
 import type { UserProfile } from "@/types/auth";
 import type { Tournament } from "@/types/tournament";
 import { cn } from "@/lib/utils";
@@ -113,6 +114,28 @@ export default function DashboardPage() {
   const [copiedName, setCopiedName] = useState(false);
   const [copiedUid, setCopiedUid] = useState(false);
   const [nextMatch, setNextMatch] = useState<any | null>(null);
+  const [uidInput, setUidInput] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [isLinking, setIsLinking] = useState(false);
+
+  const isGoogleUser = user?.uid.startsWith("g-") ?? false;
+
+  const handleLinkUid = async () => {
+    setLinkError("");
+    if (!isIntegerOnly(uidInput.trim())) {
+      setLinkError("UID must contain integers only");
+      return;
+    }
+    setIsLinking(true);
+    try {
+      const updatedUser = await linkUidToAccount(uidInput.trim());
+      setSession(updatedUser);
+      window.location.reload();
+    } catch (error: any) {
+      setLinkError(error?.message || "Failed to link UID. Please try again.");
+      setIsLinking(false);
+    }
+  };
 
   const handleCopyName = () => {
     if (user?.inGameName) {
@@ -433,6 +456,42 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Link PUBG UID (Google users) */}
+        {isGoogleUser && (
+          <div className="mt-6 rounded-2xl border border-accent/30 bg-accent/5 p-6 shadow-xl sm:p-8">
+            <h3 className="text-lg font-bold text-text-primary">
+              Link your PUBG UID
+            </h3>
+            <p className="mt-1 text-xs text-text-primary/60">
+              You signed in with Google. Enter your PUBG Mobile UID to link it to
+              your account so your team registrations appear in this dashboard.
+            </p>
+            <div className="mt-4 flex max-w-md flex-col gap-3 sm:flex-row">
+              <Input
+                label="PUBG UID"
+                name="linkUid"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="Enter your PUBG UID"
+                value={uidInput}
+                onChange={(event) => {
+                  setUidInput(sanitizeIntegerInput(event.target.value));
+                  setLinkError("");
+                }}
+                error={linkError}
+              />
+              <Button
+                variant="primary"
+                onClick={handleLinkUid}
+                disabled={isLinking}
+                className="sm:w-auto"
+              >
+                {isLinking ? "Linking..." : "Link UID"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Next Match Countdown Card */}
         {nextMatch && (

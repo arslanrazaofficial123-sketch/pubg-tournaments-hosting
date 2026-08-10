@@ -7,6 +7,9 @@ const userSchema = new Schema(
     whatsapp: { type: String, required: false, unique: true, index: true, sparse: true },
     password: { type: String, required: false },
     recoveryPassword: { type: String, required: false },
+    email: { type: String, required: false, unique: true, index: true, sparse: true, trim: true, lowercase: true },
+    googleId: { type: String, required: false, unique: true, index: true, sparse: true },
+    name: { type: String, required: false, trim: true },
   },
   { timestamps: true },
 );

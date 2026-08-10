@@ -11,6 +11,8 @@ import {
   verifyPartner,
   changeAdminPassword,
   changePartnerPassword,
+  googleLogin,
+  linkUid,
 } from "../controllers/authController.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 
@@ -18,6 +20,8 @@ const router = Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/google", googleLogin);
+router.post("/link-uid", requireAuth, linkUid);
 router.post("/verify-admin", verifyAdmin);
 router.post("/verify-partner", verifyPartner);
 router.post("/change-admin-password", requireAdmin, changeAdminPassword);

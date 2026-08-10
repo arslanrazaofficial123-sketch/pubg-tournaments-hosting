@@ -1,18 +1,25 @@
 import bcrypt from "bcryptjs";
+import { OAuth2Client } from "google-auth-library";
 import { UserModel } from "../models/User.js";
 import type {
   LoginPayload,
   RegisterPayload,
   UserProfile,
 } from "../types/user.js";
+import { env } from "../config/env.js";
 
 const SALT_ROUNDS = 10;
+
+const googleClient = new OAuth2Client(env.googleClientId || undefined);
 
 function toUserProfile(doc: any): UserProfile {
   return {
     uid: doc.uid,
     inGameName: doc.inGameName || "",
     whatsapp: doc.whatsapp || "",
+    email: doc.email || undefined,
+    name: doc.name || undefined,
+    googleId: doc.googleId || undefined,
   };
 }
 
@@ -94,5 +101,71 @@ export async function deleteUserByUid(uid: string): Promise<boolean> {
 export async function getAllUsers(): Promise<UserProfile[]> {
   const docs = await UserModel.find({}).lean();
   return docs.map((doc) => toUserProfile(doc));
+}
+
+export async function googleSignIn(credential: string): Promise<UserProfile> {
+  if (!env.googleClientId) {
+    throw new Error("GOOGLE_NOT_CONFIGURED");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: env.googleClientId,
+  });
+  const payload = ticket.getPayload();
+  if (!payload || !payload.sub || !payload.email) {
+    throw new Error("GOOGLE_INVALID_TOKEN");
+  }
+  if (payload.email_verified !== true) {
+    throw new Error("GOOGLE_EMAIL_NOT_VERIFIED");
+  }
+
+  const googleId = payload.sub;
+  const email = payload.email.toLowerCase();
+  const name = payload.name || "";
+
+  const existing = await UserModel.findOne({
+    $or: [{ googleId }, { email }],
+  });
+
+  if (existing) {
+    if (!existing.googleId) {
+      existing.googleId = googleId;
+    }
+    if (!existing.email) {
+      existing.email = email;
+    }
+    if (name && !existing.name) {
+      existing.name = name;
+    }
+    await existing.save();
+    return toUserProfile(existing);
+  }
+
+  const created = await UserModel.create({
+    uid: `g-${googleId}`,
+    googleId,
+    email,
+    name,
+    inGameName: name || undefined,
+  });
+  return toUserProfile(created);
+}
+
+export async function linkUidToUser(currentUid: string, newUid: string): Promise<UserProfile | null> {
+  const doc = await UserModel.findOne({ uid: currentUid });
+  if (!doc) return null;
+
+  const taken = await UserModel.findOne({
+    uid: newUid.trim(),
+    _id: { $ne: doc._id },
+  }).lean();
+  if (taken) {
+    throw new Error("UID_ALREADY_LINKED");
+  }
+
+  doc.uid = newUid.trim();
+  await doc.save();
+  return toUserProfile(doc);
 }
 
