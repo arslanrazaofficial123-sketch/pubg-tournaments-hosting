@@ -15,7 +15,6 @@ interface PageShellProps {
 
 export function PageShell({ children, showHelpFab = true }: PageShellProps) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authView, setAuthView] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     const sessionUser = getSessionUser();
@@ -35,8 +34,7 @@ export function PageShell({ children, showHelpFab = true }: PageShellProps) {
     checkUserExists();
   }, []);
 
-  const handleOpenAuth = (view: "signin" | "signup") => {
-    setAuthView(view);
+  const handleOpenAuth = () => {
     setIsAuthOpen(true);
   };
 
@@ -48,7 +46,6 @@ export function PageShell({ children, showHelpFab = true }: PageShellProps) {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        initialView={authView}
       />
       {showHelpFab && <HelpFab />}
     </div>

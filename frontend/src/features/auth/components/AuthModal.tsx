@@ -1,34 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui";
 import { SignInForm } from "./SignInForm";
-import { SignUpForm } from "./SignUpForm";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialView?: "signin" | "signup";
 }
 
-export function AuthModal({
-  isOpen,
-  onClose,
-  initialView = "signin",
-}: AuthModalProps) {
-  const [view, setView] = useState<"signin" | "signup">(initialView);
-
-  useEffect(() => {
-    if (isOpen) {
-      setView(initialView);
-    }
-  }, [isOpen, initialView]);
-
+export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={view === "signin" ? "Sign In" : "Sign Up"}
+      title="Sign In"
       width={480}
       hideHeader
     >
@@ -59,7 +44,6 @@ export function AuthModal({
         <SignInForm
           isModal
           onSuccess={onClose}
-          onToggleView={undefined}
         />
       </div>
     </Modal>

@@ -52,7 +52,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const sessionUser = getSessionUser();
     if (!checkLoggedIn() || !sessionUser) {
-      router.push("/link-uid");
+      router.push("/");
       return;
     }
     setUser(sessionUser);
