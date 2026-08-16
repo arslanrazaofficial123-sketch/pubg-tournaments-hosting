@@ -443,6 +443,9 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex gap-3">
+              <Button variant="outline" onClick={() => router.push("/profile")} className="py-2.5">
+                View Profile
+              </Button>
               <Button variant="secondary" onClick={handleSignOut} className="py-2.5">
                 Unlink
               </Button>
