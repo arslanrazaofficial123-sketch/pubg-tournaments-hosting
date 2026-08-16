@@ -31,7 +31,6 @@ export function AuthFormLayout({
               src="/images/logo.png"
               alt="EPIX Esports"
               fill
-              priority
               sizes="(max-width: 640px) 40px, 80px"
               className="object-contain"
             />
@@ -75,7 +74,6 @@ export function AuthFormLayout({
                 src="/images/logo.png"
                 alt="EPIX Esports"
                 fill
-                priority
                 sizes="(max-width: 640px) 64px, 160px"
                 className="object-contain"
               />
