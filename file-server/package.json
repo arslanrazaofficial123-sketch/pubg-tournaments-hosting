@@ -1,0 +1,9 @@
+{
+  "name": "epix-file-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": { "express": "^4.21.2" }
+}
