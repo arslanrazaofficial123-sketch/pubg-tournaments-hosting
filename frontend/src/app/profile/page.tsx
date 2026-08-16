@@ -200,6 +200,32 @@ export default function ProfilePage() {
     };
   }, [registrations, matchesPlayed]);
 
+  const teammates = useMemo(() => {
+    const byUid = new Map<string, {
+      uid: string;
+      inGameName: string;
+      picture?: string;
+      tournaments: string[];
+    }>();
+    registrations.forEach((reg) => {
+      const title = tournaments.find((t) => t.id === reg.tournamentId)?.title || "Unknown Tournament";
+      reg.members.forEach((m: any) => {
+        const existing = byUid.get(m.uid);
+        if (existing) {
+          if (!existing.tournaments.includes(title)) existing.tournaments.push(title);
+        } else {
+          byUid.set(m.uid, {
+            uid: m.uid,
+            inGameName: m.inGameName || m.uid,
+            picture: m.picture,
+            tournaments: [title],
+          });
+        }
+      });
+    });
+    return Array.from(byUid.values());
+  }, [registrations, tournaments]);
+
   if (isAuthorized === null) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-primary">
@@ -371,7 +397,60 @@ export default function ProfilePage() {
             </Button>
           </div>
         </section>
-        {/* Teammates - Task 9 */}
+        {/* Teammates */}
+        <section id="teammates" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-text-primary">Teammates</h2>
+            <span className="rounded-full border border-border bg-bg-primary/50 px-3 py-0.5 text-xs font-medium text-text-primary/60">Members</span>
+          </div>
+
+          {teammates.length === 0 ? (
+            <p className="text-sm text-text-primary/60">
+              No teammates yet — register a team in a tournament to add members.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs uppercase tracking-wider text-text-primary/50">
+                    <th className="pb-2 pr-4">Player</th>
+                    <th className="pb-2 pr-4">UID</th>
+                    <th className="pb-2">Played Together</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teammates.map((tm) => (
+                    <tr key={tm.uid} className="border-b border-border/50 last:border-0">
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-bg-primary text-xs font-bold text-accent">
+                            {tm.picture ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={tm.picture} alt={tm.inGameName} className="h-full w-full object-cover" />
+                            ) : (
+                              getInitials(tm.inGameName, tm.uid)
+                            )}
+                          </div>
+                          <span className="font-semibold text-text-primary">{tm.inGameName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 font-mono text-text-primary/70">{tm.uid}</td>
+                      <td className="py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {tm.tournaments.map((t) => (
+                            <span key={t} className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       </div>
     </PageShell>
   );
