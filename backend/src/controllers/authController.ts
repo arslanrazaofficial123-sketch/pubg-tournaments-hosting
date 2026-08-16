@@ -15,6 +15,7 @@ import {
   changeUserPassword,
 } from "../services/authService.js";
 import { lookupPlayerByUid } from "../services/playerLookupService.js";
+import { uploadImage } from "../services/storageService.js";
 import { env } from "../config/env.js";
 import {
   validateRegisterPayload,
@@ -352,9 +353,15 @@ export async function uploadAvatarHandler(req: AuthenticatedRequest, res: Respon
     if (dataUrl.length > 5 * 1024 * 1024) {
       return res.status(400).json({ message: "Image too large (max 5MB)." });
     }
-    res.json({ avatarUrl: dataUrl });
+    const authReq = req as AuthenticatedRequest;
+    const avatarUrl = await uploadImage({
+      kind: "avatar",
+      uid: authReq.user?.uid,
+      dataUrl,
+    });
+    res.json({ avatarUrl });
   } catch {
-    res.status(500).json({ message: "Failed to process avatar." });
+    res.status(502).json({ message: "Picture storage is temporarily unavailable." });
   }
 }
 

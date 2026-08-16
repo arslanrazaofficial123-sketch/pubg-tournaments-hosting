@@ -1,6 +1,7 @@
 import { TournamentModel } from "../models/Tournament.js";
 import { RegistrationModel } from "../models/Registration.js";
 import { UserModel } from "../models/User.js";
+import { uploadImage } from "./storageService.js";
 import type { Tournament, TournamentStatus } from "../types/tournament.js";
 
 function toTournament(doc: Record<string, unknown>): Tournament {
@@ -164,18 +165,40 @@ export async function registerPlayerForTournament(
     assignedGroup = `Group ${groupLetter}`;
   }
 
+  let teamLogoUrl: string | undefined;
+  if (payload.teamLogo) {
+    teamLogoUrl = await uploadImage({
+      kind: "team-logo",
+      teamName: payload.teamName,
+      dataUrl: payload.teamLogo,
+    });
+  }
+
+  const membersWithPictures = await Promise.all(
+    payload.members.map(async (m) => {
+      if (!m.picture) return m;
+      const pictureUrl = await uploadImage({
+        kind: "player-picture",
+        teamName: payload.teamName,
+        uid: m.uid,
+        dataUrl: m.picture,
+      });
+      return { ...m, picture: pictureUrl };
+    })
+  );
+
   const id = "reg-" + Math.random().toString(36).substring(2, 11);
   const registration = await RegistrationModel.create({
     id,
     tournamentId,
     teamName: payload.teamName,
-    teamLogo: payload.teamLogo,
+    teamLogo: teamLogoUrl,
     group: assignedGroup,
     whatsapp: payload.whatsapp,
     receiptImage: payload.receiptImage,
     transactionId: payload.transactionId,
     status: "pending",
-    members: payload.members.map((m) => ({
+    members: membersWithPictures.map((m) => ({
       uid: m.uid,
       inGameName: m.inGameName,
       picture: m.picture,
