@@ -11,6 +11,8 @@ import {
   findOrCreateUser,
   googleSignIn,
   linkUidToUser,
+  updateUserProfile,
+  changeUserPassword,
 } from "../services/authService.js";
 import { lookupPlayerByUid } from "../services/playerLookupService.js";
 import { env } from "../config/env.js";
@@ -293,4 +295,57 @@ export const changeAdminPassword = asyncHandler(async (req: Request, res: Respon
 
   res.json({ success: true, message: "Admin password updated successfully" });
 });
+
+export async function updateProfileHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { inGameName, whatsapp, bio, avatar } = req.body || {};
+    const updated = await updateUserProfile(req.user!.uid, { inGameName, whatsapp, bio, avatar });
+    res.json(updated);
+  } catch (err: any) {
+    const code = err?.message || "";
+    if (code === "USER_NOT_FOUND") return res.status(404).json({ message: "User not found." });
+    if (code === "INGAMENAME_REQUIRED") return res.status(400).json({ message: "In-game name is required." });
+    if (code === "INGAMENAME_ALREADY_EXISTS") return res.status(409).json({ message: "In-game name is already taken." });
+    if (code === "WHATSAPP_ALREADY_EXISTS") return res.status(409).json({ message: "WhatsApp number is already registered." });
+    res.status(500).json({ message: "Failed to update profile." });
+  }
+}
+
+export async function changePasswordHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new passwords are required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters." });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match." });
+    }
+    await changeUserPassword(req.user!.uid, currentPassword, newPassword);
+    res.json({ success: true, message: "Password updated successfully." });
+  } catch (err: any) {
+    const code = err?.message || "";
+    if (code === "USER_NOT_FOUND") return res.status(404).json({ message: "User not found." });
+    if (code === "PASSWORD_NOT_SET") return res.status(400).json({ message: "This account uses Google login and has no password." });
+    if (code === "CURRENT_PASSWORD_WRONG") return res.status(400).json({ message: "Current password is incorrect." });
+    res.status(500).json({ message: "Failed to change password." });
+  }
+}
+
+export async function uploadAvatarHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { dataUrl } = req.body || {};
+    if (!dataUrl || !/^data:image\/(png|jpe?g|webp);base64,/.test(String(dataUrl))) {
+      return res.status(400).json({ message: "Valid image data URL required (png, jpg, or webp)." });
+    }
+    if (dataUrl.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ message: "Image too large (max 5MB)." });
+    }
+    res.json({ avatarUrl: dataUrl });
+  } catch {
+    res.status(500).json({ message: "Failed to process avatar." });
+  }
+}
 
