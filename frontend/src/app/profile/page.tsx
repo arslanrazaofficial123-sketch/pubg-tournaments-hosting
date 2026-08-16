@@ -10,6 +10,8 @@ import {
   changePassword,
   fetchAllRegistrations,
   getTournaments,
+  linkUidToAccount,
+  lookupPlayerByUid,
   updateProfile,
   uploadAvatar,
 } from "@/services/api";
@@ -48,6 +50,13 @@ export default function ProfilePage() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [matchesPlayed, setMatchesPlayed] = useState(0);
+
+  const [uidInput, setUidInput] = useState("");
+  const [isLinkingUid, setIsLinkingUid] = useState(false);
+  const [uidError, setUidError] = useState("");
+  const [isEditingUid, setIsEditingUid] = useState(false);
+  const [inGameNameLookup, setInGameNameLookup] = useState<string | null>(null);
+  const [lookupUnavailable, setLookupUnavailable] = useState(false);
 
   useEffect(() => {
     const sessionUser = getSessionUser();
@@ -117,6 +126,37 @@ export default function ProfilePage() {
       showAlert("Failed to upload picture. Please try again.", "error");
     } finally {
       setAvatarUploading(false);
+    }
+  };
+
+  const handleLinkUid = async () => {
+    if (!user) return;
+    const uid = uidInput.trim();
+    if (!uid || !/^\d+$/.test(uid)) {
+      setUidError("UID must contain numbers only.");
+      return;
+    }
+    setIsLinkingUid(true);
+    setUidError("");
+    setLookupUnavailable(false);
+    setIsEditingUid(false);
+    try {
+      const updated = await linkUidToAccount(uid);
+      setSession(updated);
+      setUser(updated);
+      setUidInput("");
+      // Best-effort in-game name lookup; lookup can be unavailable (Midasbuy redesign) — degrade gracefully.
+      try {
+        const result = await lookupPlayerByUid(uid);
+        setInGameNameLookup(result.found ? result.inGameName : null);
+      } catch {
+        setLookupUnavailable(true);
+      }
+      showAlert("UID linked successfully.", "success");
+    } catch (error) {
+      setUidError(error instanceof Error ? error.message : "Failed to link UID.");
+    } finally {
+      setIsLinkingUid(false);
     }
   };
 
@@ -323,6 +363,69 @@ export default function ProfilePage() {
               {isSaving ? "Saving..." : "Save Profile"}
             </Button>
           </div>
+        </section>
+
+        {/* Link Your UID */}
+        <section id="link-uid" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-text-primary">Link Your UID</h2>
+            <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-0.5 text-xs font-medium text-accent">Identity</span>
+          </div>
+          <p className="text-sm text-text-primary/60">
+            Your PUBG Mobile UID lets tournaments identify you. Sign in with Google and link it here.
+          </p>
+
+          {user?.uid && /^\d+$/.test(user.uid) && !isEditingUid ? (
+            <div className="mt-4">
+              <p className="text-sm text-text-primary">
+                Linked UID: <span className="font-mono font-semibold">{user.uid}</span>
+              </p>
+              {user.inGameName && (
+                <p className="mt-1 text-sm text-text-primary/70">In-game name: {user.inGameName}</p>
+              )}
+              {inGameNameLookup && (
+                <p className="mt-1 text-sm text-accent">In-game name: {inGameNameLookup}</p>
+              )}
+              {lookupUnavailable && (
+                <p className="mt-1 text-sm text-text-primary/50">
+                  In-game name lookup is currently unavailable — you can still play.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setUidInput(user.uid);
+                  setIsEditingUid(true);
+                }}
+                className="mt-3 text-sm text-accent hover:underline"
+              >
+                Change UID
+              </button>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <Input
+                label="PUBG Mobile UID *"
+                name="uid"
+                inputMode="numeric"
+                placeholder="Enter your PUBG UID"
+                value={uidInput}
+                onChange={(e) => {
+                  setUidInput(e.target.value.replace(/\D/g, ""));
+                  setUidError("");
+                }}
+                error={uidError}
+              />
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isLinkingUid || !uidInput.trim()}
+                onClick={handleLinkUid}
+              >
+                {isLinkingUid ? "Linking..." : "Link UID"}
+              </Button>
+            </div>
+          )}
         </section>
 
         {/* Career Stats */}
