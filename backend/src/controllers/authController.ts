@@ -151,7 +151,16 @@ export const getUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const requester = authReq.user;
   const uid = String(req.params.uid ?? "");
+
+  // Allow admins to delete any account, or users to delete only their own
+  if (requester?.role !== "admin" && requester?.uid !== uid) {
+    res.status(403).json({ message: "Access denied. You can only delete your own account." });
+    return;
+  }
+
   const deleted = await deleteUserByUid(uid);
 
   if (!deleted) {

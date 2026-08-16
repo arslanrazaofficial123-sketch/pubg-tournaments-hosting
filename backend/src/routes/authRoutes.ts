@@ -36,6 +36,6 @@ router.get("/check-uid/:uid", checkUid);
 router.get("/lookup-player/:uid", lookupPlayer);
 router.get("/users", requireStaff, getUsers);
 router.get("/users/:uid", requireAuth, getUser);
-router.delete("/users/:uid", requireAdmin, deleteUser);
+router.delete("/users/:uid", requireAuth, deleteUser);
 
 export default router;
