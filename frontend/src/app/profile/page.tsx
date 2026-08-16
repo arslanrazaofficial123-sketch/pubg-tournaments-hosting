@@ -5,14 +5,16 @@ import { useRouter } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button, Input } from "@/components/ui";
 import { useAlert } from "@/components/ui/AlertProvider";
-import { getSessionUser, isLoggedIn as checkLoggedIn, setSession } from "@/lib/auth";
+import { getSessionUser, isLoggedIn as checkLoggedIn, logout, setSession } from "@/lib/auth";
 import {
+  changePassword,
   fetchAllRegistrations,
   getTournaments,
   updateProfile,
   uploadAvatar,
 } from "@/services/api";
 import { fetchMatches } from "@/services/api/matches";
+import { deleteAccount } from "@/services/api/auth";
 import type { UserProfile } from "@/types/auth";
 import type { Registration } from "@/services/api/tournaments";
 import type { Tournament } from "@/types/tournament";
@@ -24,7 +26,7 @@ function getInitials(name: string, uid: string): string {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
@@ -35,6 +37,12 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChanging, setIsChanging] = useState(false);
 
   // Career stats data
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -133,6 +141,45 @@ export default function ProfilePage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user) return;
+    if (newPassword.length < 6) {
+      showAlert("New password must be at least 6 characters.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showAlert("Passwords do not match.", "error");
+      return;
+    }
+    setIsChanging(true);
+    try {
+      await changePassword({ currentPassword, newPassword, confirmPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      showAlert("Password updated successfully.", "success");
+    } catch (error: any) {
+      showAlert(error?.message || "Failed to change password.", "error");
+    } finally {
+      setIsChanging(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    if (!user) return;
+    showConfirm("Are you sure you want to permanently delete your account?", async () => {
+      try {
+        await deleteAccount(user.uid);
+        showAlert("Account deleted successfully.", "success");
+        logout();
+        router.push("/");
+      } catch (error) {
+        console.error("Failed to delete account:", error);
+        showAlert("Failed to delete account. Please try again.", "error");
+      }
+    });
   };
 
   const careerStats = useMemo(() => {
@@ -274,7 +321,56 @@ export default function ProfilePage() {
             ))}
           </div>
         </section>
-        {/* Change Password - Task 8 */}
+        {/* Change Password */}
+        <section id="change-password" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-text-primary">Change Password</h2>
+            <span className="rounded-full border border-border bg-bg-primary/50 px-3 py-0.5 text-xs font-medium text-text-primary/60">Security</span>
+          </div>
+
+          {user?.googleId ? (
+            <p className="text-sm text-text-primary/60">
+              You signed in with Google — this account has no password.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <Input
+                label="Current Password *"
+                name="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+              <Input
+                label="New Password *"
+                name="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <Input
+                label="Confirm New Password *"
+                name="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <Button variant="primary" onClick={handleChangePassword} disabled={isChanging}>
+                {isChanging ? "Updating..." : "Update Password"}
+              </Button>
+            </div>
+          )}
+
+          <div className="mt-6 border-t border-border pt-6">
+            <h3 className="mb-2 text-base font-bold text-text-primary">Account & Data</h3>
+            <p className="mb-3 text-sm text-text-primary/60">
+              Permanently delete your account and all data.
+            </p>
+            <Button variant="outline" onClick={handleDeleteAccount} className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60">
+              Delete Account
+            </Button>
+          </div>
+        </section>
         {/* Teammates - Task 9 */}
       </div>
     </PageShell>
