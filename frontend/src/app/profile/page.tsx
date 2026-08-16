@@ -12,6 +12,7 @@ import {
   updateProfile,
   uploadAvatar,
 } from "@/services/api";
+import { fetchMatches } from "@/services/api/matches";
 import type { UserProfile } from "@/types/auth";
 import type { Registration } from "@/services/api/tournaments";
 import type { Tournament } from "@/types/tournament";
@@ -38,6 +39,7 @@ export default function ProfilePage() {
   // Career stats data
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [matchesPlayed, setMatchesPlayed] = useState(0);
 
   useEffect(() => {
     const sessionUser = getSessionUser();
@@ -51,13 +53,33 @@ export default function ProfilePage() {
     setBio(sessionUser.bio || "");
     setIsAuthorized(true);
 
-    Promise.all([
-      fetchAllRegistrations(undefined, sessionUser.uid),
-      getTournaments(),
-    ]).then(([regs, tns]) => {
+    (async () => {
+      const [regs, tns] = await Promise.all([
+        fetchAllRegistrations(undefined, sessionUser.uid),
+        getTournaments(),
+      ]);
       setRegistrations(regs);
       setTournaments(tns);
-    });
+
+      const approvedRegs = regs.filter((r) => r.status === "approved");
+      const now = new Date();
+      const matchResults = await Promise.all(
+        approvedRegs.map((r) => fetchMatches(r.tournamentId))
+      );
+      let matchesPlayed = 0;
+      approvedRegs.forEach((r, idx) => {
+        const groupMatches = (matchResults[idx] || []).filter(
+          (m) => m.groups && m.groups.includes(r.group)
+        );
+        matchesPlayed += groupMatches.filter((m) => {
+          const d = new Date(m.date);
+          const tp = m.time.match(/^(\d{1,2}):(\d{2})$/);
+          if (tp) d.setHours(parseInt(tp[1], 10), parseInt(tp[2], 10), 0, 0);
+          return d.getTime() < now.getTime();
+        }).length;
+      });
+      setMatchesPlayed(matchesPlayed);
+    })();
   }, [router]);
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +134,24 @@ export default function ProfilePage() {
       setIsSaving(false);
     }
   };
+
+  const careerStats = useMemo(() => {
+    const approved = registrations.filter((r) => r.status === "approved");
+    const tournamentCount = new Set(registrations.map((r) => r.tournamentId)).size;
+    const kills = approved.reduce((sum, r) => sum + (r.kills || 0), 0);
+    const points = approved.reduce((sum, r) => sum + (r.totalPoints || 0), 0);
+    const chickenDinners = approved.reduce((sum, r) => sum + (r.chickenDinner || 0), 0);
+    const ranks = approved.map((r) => r.rank || 0).filter((rk) => rk > 0);
+    const bestRank = ranks.length > 0 ? Math.min(...ranks) : null;
+    return {
+      tournaments: tournamentCount,
+      matches: matchesPlayed,
+      kills,
+      points,
+      chickenDinners,
+      bestRank,
+    };
+  }, [registrations, matchesPlayed]);
 
   if (isAuthorized === null) {
     return (
@@ -212,7 +252,28 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Career Stats - Task 7 */}
+        {/* Career Stats */}
+        <section id="career-stats" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-text-primary">Career Stats</h2>
+            <span className="rounded-full border border-accent/30 bg-accent/10 px-3 py-0.5 text-xs font-medium text-accent">All-Time</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: "Rank", value: careerStats.bestRank ? `#${careerStats.bestRank}` : "#-" },
+              { label: "Total Points", value: String(careerStats.points) },
+              { label: "Total Kills", value: String(careerStats.kills) },
+              { label: "Events", value: String(careerStats.tournaments) },
+              { label: "Matches", value: String(careerStats.matches) },
+              { label: "Chicken Dinners", value: String(careerStats.chickenDinners) },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-border bg-bg-primary p-4 text-center">
+                <p className="text-xs font-medium uppercase tracking-wider text-text-primary/50">{stat.label}</p>
+                <p className="mt-1 text-xl font-black text-accent">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
         {/* Change Password - Task 8 */}
         {/* Teammates - Task 9 */}
       </div>
