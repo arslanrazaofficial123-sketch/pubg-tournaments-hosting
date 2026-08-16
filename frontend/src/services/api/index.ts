@@ -7,8 +7,12 @@ export {
   linkUidToAccount,
   lookupPlayerByUid,
   registerAccount,
+  updateProfile,
+  changePassword,
+  uploadAvatar,
 } from "./auth";
 export {
+  fetchAllRegistrations,
   getTournamentById,
   getTournaments,
   getTournamentsByStatus,

@@ -121,6 +121,7 @@ export function SiteNavigation() {
     ? [
         { label: "Tournaments", href: "/" },
         { label: "Dashboard", href: "/dashboard" },
+        { label: "Profile", href: "/profile" },
         ...approvedRegistrations.map((reg) => ({
           label: reg.tournamentTitle,
           href: `/dashboard/tournaments/${reg.tournamentId}`,
