@@ -10,6 +10,8 @@ const userSchema = new Schema(
     email: { type: String, required: false, unique: true, index: true, sparse: true, trim: true, lowercase: true },
     googleId: { type: String, required: false, unique: true, index: true, sparse: true },
     name: { type: String, required: false, trim: true },
+    avatar: { type: String, required: false },
+    bio: { type: String, required: false, maxlength: 500 },
   },
   { timestamps: true },
 );
