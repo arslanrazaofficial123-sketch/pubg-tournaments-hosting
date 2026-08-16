@@ -21,6 +21,10 @@ declare global {
   }
 }
 
+// GSI requires initialize() once per client ID per page load. Calling it on
+// every mount makes Google log "[GSI_LOGGER]: ... is called multiple times".
+let initializedClientId: string | null = null;
+
 export function GoogleSignInButton({
   clientId,
   onSuccess,
@@ -34,17 +38,20 @@ export function GoogleSignInButton({
 
     const renderButton = () => {
       if (!containerRef.current || !window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        ux_mode: "popup",
-        callback: (response: { credential?: string }) => {
-          if (response?.credential) {
-            onSuccess(response.credential);
-          } else {
-            onError?.("Google sign-in did not return a credential.");
-          }
-        },
-      });
+      if (initializedClientId !== clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          ux_mode: "popup",
+          callback: (response: { credential?: string }) => {
+            if (response?.credential) {
+              onSuccess(response.credential);
+            } else {
+              onError?.("Google sign-in did not return a credential.");
+            }
+          },
+        });
+        initializedClientId = clientId;
+      }
       window.google.accounts.id.renderButton(containerRef.current, {
         theme: "outline",
         size: "large",
