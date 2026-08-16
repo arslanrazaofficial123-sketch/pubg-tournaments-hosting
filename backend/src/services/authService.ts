@@ -20,6 +20,8 @@ function toUserProfile(doc: any): UserProfile {
     email: doc.email || undefined,
     name: doc.name || undefined,
     googleId: doc.googleId || undefined,
+    avatar: doc.avatar || undefined,
+    bio: doc.bio || undefined,
   };
 }
 
@@ -167,5 +169,59 @@ export async function linkUidToUser(currentUid: string, newUid: string): Promise
   doc.uid = newUid.trim();
   await doc.save();
   return toUserProfile(doc);
+}
+
+export async function updateUserProfile(
+  uid: string,
+  patch: { inGameName?: string; whatsapp?: string; bio?: string; avatar?: string },
+): Promise<UserProfile> {
+  const doc = await UserModel.findOne({ uid });
+  if (!doc) throw new Error("USER_NOT_FOUND");
+
+  if (patch.inGameName !== undefined) {
+    const name = patch.inGameName.trim();
+    if (name === "") throw new Error("INGAMENAME_REQUIRED");
+    const taken = await UserModel.findOne({
+      inGameName: name,
+      _id: { $ne: doc._id },
+    }).lean();
+    if (taken) throw new Error("INGAMENAME_ALREADY_EXISTS");
+    doc.inGameName = name;
+  }
+
+  if (patch.whatsapp !== undefined) {
+    const wa = patch.whatsapp.trim();
+    if (wa !== "") {
+      const taken = await UserModel.findOne({
+        whatsapp: wa,
+        _id: { $ne: doc._id },
+      }).lean();
+      if (taken) throw new Error("WHATSAPP_ALREADY_EXISTS");
+    }
+    doc.whatsapp = wa;
+  }
+
+  if (patch.bio !== undefined) doc.bio = patch.bio.slice(0, 500);
+  if (patch.avatar !== undefined) doc.avatar = patch.avatar;
+
+  await doc.save();
+  return toUserProfile(doc);
+}
+
+export async function changeUserPassword(
+  uid: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<boolean> {
+  const doc = await UserModel.findOne({ uid });
+  if (!doc) throw new Error("USER_NOT_FOUND");
+  if (!doc.password) throw new Error("PASSWORD_NOT_SET");
+
+  const isValid = await bcrypt.compare(currentPassword, doc.password);
+  if (!isValid) throw new Error("CURRENT_PASSWORD_WRONG");
+
+  doc.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await doc.save();
+  return true;
 }
 
