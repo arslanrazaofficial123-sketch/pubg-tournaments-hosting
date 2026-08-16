@@ -5,6 +5,8 @@ export interface UserProfile {
   email?: string;
   name?: string;
   token?: string;
+  avatar?: string;
+  bio?: string;
 }
 
 export interface SignUpFormData {

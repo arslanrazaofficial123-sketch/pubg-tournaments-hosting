@@ -133,3 +133,33 @@ export async function changePartnerPassword(
     body: JSON.stringify({ currentPassword, newPassword }),
   });
 }
+
+export async function updateProfile(payload: {
+  inGameName?: string;
+  whatsapp?: string;
+  bio?: string;
+  avatar?: string;
+}): Promise<UserProfile> {
+  return apiClient<UserProfile>("/auth/profile", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function changePassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ success: boolean; message: string }> {
+  return apiClient<{ success: boolean; message: string }>("/auth/password", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function uploadAvatar(dataUrl: string): Promise<{ avatarUrl: string }> {
+  return apiClient<{ avatarUrl: string }>("/auth/avatar", {
+    method: "POST",
+    body: JSON.stringify({ dataUrl }),
+  });
+}
