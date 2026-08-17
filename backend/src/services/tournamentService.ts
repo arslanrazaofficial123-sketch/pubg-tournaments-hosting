@@ -138,12 +138,15 @@ export async function registerPlayerForTournament(
     }
   }
 
-  // 2. Validate each member's UID exists in PUBG/Midasbuy
-  const lookupMap = new Map<string, { found: boolean; inGameName: string | null }>();
+  // 2. Validate each member's UID exists in PUBG/Midasbuy (fail-open on lookup errors)
+  const lookupMap = new Map<string, { found: boolean; inGameName: string | null; error?: "not_found" | "lookup_failed" }>();
   for (const member of payload.members) {
     const lookup = await lookupPlayerByUid(member.uid.trim());
-    if (!lookup.found) {
+    if (!lookup.found && lookup.error === "not_found") {
       throw new Error(`INVALID_PUBG_UID: ${member.uid}`);
+    }
+    if (lookup.error === "lookup_failed") {
+      console.warn(`Midasbuy lookup failed for member UID ${member.uid.trim()}, allowing registration (fail-open)`);
     }
     // Optionally verify inGameName matches Midasbuy (case-insensitive)
     const midasbuyName = lookup.inGameName?.toLowerCase().trim();

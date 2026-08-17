@@ -102,6 +102,7 @@ async function lookupViaMidasbuy(uid: string): Promise<string | null> {
 export interface PlayerLookupResult {
   found: boolean;
   inGameName: string | null;
+  error?: "not_found" | "lookup_failed";
 }
 
 export async function lookupPlayerByUid(
@@ -109,15 +110,14 @@ export async function lookupPlayerByUid(
 ): Promise<PlayerLookupResult> {
   try {
     const inGameName = await lookupViaMidasbuy(uid);
-    return {
-      found: Boolean(inGameName),
-      inGameName,
-    };
+    if (inGameName) {
+      return { found: true, inGameName };
+    }
+    // lookupViaMidasbuy returns null for both "not found" (ret != 0) and errors
+    // We can't distinguish, so treat as "not_found" but allow fail-open in callers
+    return { found: false, inGameName: null, error: "not_found" };
   } catch (error) {
     console.error("Player lookup failed:", error);
-    return {
-      found: false,
-      inGameName: null,
-    };
+    return { found: false, inGameName: null, error: "lookup_failed" };
   }
 }

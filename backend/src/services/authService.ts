@@ -55,10 +55,13 @@ export async function registerUser(
     throw new Error("UID_ALREADY_EXISTS");
   }
 
-  // Validate UID exists in PUBG/Midasbuy
+  // Validate UID exists in PUBG/Midasbuy (fail-open on lookup errors)
   const lookup = await lookupPlayerByUid(payload.uid.trim());
-  if (!lookup.found) {
+  if (!lookup.found && lookup.error === "not_found") {
     throw new Error("INVALID_PUBG_UID");
+  }
+  if (lookup.error === "lookup_failed") {
+    console.warn(`Midasbuy lookup failed for UID ${payload.uid.trim()}, allowing registration (fail-open)`);
   }
 
   const existingWhatsapp = await UserModel.findOne({ whatsapp: payload.whatsapp.trim() }).lean();
