@@ -55,12 +55,11 @@ export async function registerUser(
     throw new Error("UID_ALREADY_EXISTS");
   }
 
-  // Validate UID exists in PUBG/Midasbuy (fail-open on lookup errors)
+  // Validate UID against PUBG/Midasbuy (advisory only — fail-open due to API unreliability from Render)
   const lookup = await lookupPlayerByUid(payload.uid.trim());
-  if (!lookup.found && lookup.error === "not_found") {
-    throw new Error("INVALID_PUBG_UID");
-  }
-  if (lookup.error === "lookup_failed") {
+  if (!lookup.found) {
+    console.warn(`Midasbuy lookup: UID ${payload.uid.trim()} not found (error: ${lookup.error}), allowing registration (fail-open)`);
+  } else if (lookup.error === "lookup_failed") {
     console.warn(`Midasbuy lookup failed for UID ${payload.uid.trim()}, allowing registration (fail-open)`);
   }
 

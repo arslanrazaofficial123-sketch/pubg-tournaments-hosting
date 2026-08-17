@@ -138,21 +138,21 @@ export async function registerPlayerForTournament(
     }
   }
 
-  // 2. Validate each member's UID exists in PUBG/Midasbuy (fail-open on lookup errors)
+  // 2. Advisory UID validation against PUBG/Midasbuy (fail-open due to API unreliability from Render)
   const lookupMap = new Map<string, { found: boolean; inGameName: string | null; error?: "not_found" | "lookup_failed" }>();
   for (const member of payload.members) {
     const lookup = await lookupPlayerByUid(member.uid.trim());
-    if (!lookup.found && lookup.error === "not_found") {
-      throw new Error(`INVALID_PUBG_UID: ${member.uid}`);
+    if (!lookup.found) {
+      console.warn(`Midasbuy lookup: member UID ${member.uid.trim()} not found (error: ${lookup.error}), allowing registration (fail-open)`);
     }
     if (lookup.error === "lookup_failed") {
       console.warn(`Midasbuy lookup failed for member UID ${member.uid.trim()}, allowing registration (fail-open)`);
     }
-    // Optionally verify inGameName matches Midasbuy (case-insensitive)
+    // Optionally verify inGameName matches Midasbuy (case-insensitive) — advisory only
     const midasbuyName = lookup.inGameName?.toLowerCase().trim();
     const providedName = member.inGameName?.toLowerCase().trim();
     if (midasbuyName && providedName && providedName !== midasbuyName) {
-      throw new Error(`INGAMENAME_MISMATCH: ${member.uid}`);
+      console.warn(`Midasbuy name mismatch for UID ${member.uid.trim()}: provided "${member.inGameName}", Midasbuy "${lookup.inGameName}"`);
     }
     lookupMap.set(member.uid.trim(), lookup);
   }
