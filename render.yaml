@@ -3,8 +3,8 @@ services:
     name: pubg-tournaments-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    buildCommand: curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared && npm install && npm run build
+    startCommand: bash scripts/start-with-db-tunnel.sh
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -16,6 +16,14 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: ADMIN_PASSWORD
+        sync: false
+      - key: FILES_BASE_URL
+        sync: false
+      - key: FILES_TOKEN
+        sync: false
+      - key: CF_ACCESS_CLIENT_ID
+        sync: false
+      - key: CF_ACCESS_CLIENT_SECRET
         sync: false
       - key: PORT
         value: 5000
