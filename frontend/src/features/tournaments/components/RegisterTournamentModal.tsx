@@ -8,7 +8,7 @@ import type { Tournament } from "@/types/tournament";
 import { getSessionUser } from "@/lib/auth";
 import { fetchUserByUid } from "@/services/api/auth";
 import { registerForTournament } from "@/services/api/tournaments";
-import { CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { CreditCard, ChevronDown, ChevronUp, ImagePlus } from "lucide-react";
 
 interface RegisterTournamentModalProps {
   isOpen: boolean;
@@ -32,8 +32,9 @@ export function RegisterTournamentModal({
   const [teamName, setTeamName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [transactionId, setTransactionId] = useState("");
-  const [members, setMembers] = useState<Array<{ uid: string; inGameName: string }>>([]);
+  const [members, setMembers] = useState<Array<{ uid: string; inGameName: string; picture?: string }>>([]);
   const [receiptBase64, setReceiptBase64] = useState("");
+  const [teamLogoBase64, setTeamLogoBase64] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -53,6 +54,7 @@ export function RegisterTournamentModal({
     setTeamName("");
     setTransactionId("");
     setReceiptBase64("");
+    setTeamLogoBase64("");
     setSelectedGroup("");
     setErrorMsg("");
 
@@ -69,10 +71,36 @@ export function RegisterTournamentModal({
     setMembers(initialMembers);
   }, [isOpen, memberCount]);
 
-  const updateMember = (index: number, key: "uid" | "inGameName", val: string) => {
+  const updateMember = (index: number, key: "uid" | "inGameName" | "picture", val: string) => {
     setMembers((current) =>
       current.map((m, i) => (i === index ? { ...m, [key]: val } : m))
     );
+  };
+
+  const handlePngUpload = (
+    file: File | undefined,
+    onDone: (base64: string) => void,
+  ): string | null => {
+    if (!file) return null;
+
+    const isImage = file.type.startsWith("image/");
+    if (!isImage) {
+      return "Please choose an image file.";
+    }
+
+    const maxSize = 3 * 1024 * 1024;
+    if (file.size > maxSize) {
+      return "Image is too large. Please upload an image under 3 MB.";
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        onDone(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+    return null;
   };
 
   const handleReceiptUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +114,22 @@ export function RegisterTournamentModal({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handlePlayerPictureUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const err = handlePngUpload(file, (base64) => updateMember(index, "picture", base64));
+    if (err) setErrorMsg(err);
+    e.target.value = "";
+  };
+
+  const handleTeamLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const err = handlePngUpload(file, setTeamLogoBase64);
+    if (err) setErrorMsg(err);
+    e.target.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -124,10 +168,15 @@ export function RegisterTournamentModal({
     try {
       await registerForTournament(tournament.id, {
         teamName: isSolo ? (members[0].inGameName || members[0].uid) : teamName.trim(),
+        teamLogo: teamLogoBase64 || undefined,
         whatsapp: whatsapp.trim(),
         receiptImage: receiptBase64,
         transactionId: transactionId.trim(),
-        members: members.map((m) => ({ uid: m.uid.trim(), inGameName: m.inGameName.trim() })),
+        members: members.map((m) => ({
+          uid: m.uid.trim(),
+          inGameName: m.inGameName.trim(),
+          picture: m.picture || undefined,
+        })),
         group: selectedGroup || undefined,
       });
       onSuccess();
@@ -165,38 +214,71 @@ export function RegisterTournamentModal({
                   Player {i + 1} {i === 0 && "(You)"}
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] sm:text-xs font-medium text-text-primary/80">
-                      Player UID *
-                    </label>
-                    <input
-                      type="text"
-                      value={member.uid}
-                      onChange={(e) => {
-                        updateMember(i, "uid", e.target.value);
-                      }}
-                      disabled={i === 0}
-                      placeholder="e.g. 58392019"
-                      className="w-full rounded-md border border-border bg-bg-primary/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-text-primary focus:border-accent focus:outline-none disabled:bg-white/[0.02] disabled:text-text-primary/50"
-                      required
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] sm:text-xs font-medium text-text-primary/80">
+                        Player UID *
+                      </label>
+                      <input
+                        type="text"
+                        value={member.uid}
+                        onChange={(e) => {
+                          updateMember(i, "uid", e.target.value);
+                        }}
+                        disabled={i === 0}
+                        placeholder="e.g. 58392019"
+                        className="w-full rounded-md border border-border bg-bg-primary/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-text-primary focus:border-accent focus:outline-none disabled:bg-white/[0.02] disabled:text-text-primary/50"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] sm:text-[10px] font-medium text-text-primary/80">
+                        In-Game Name
+                      </label>
+                      <input
+                        type="text"
+                        value={member.inGameName}
+                        onChange={(e) => updateMember(i, "inGameName", e.target.value)}
+                        disabled={i === 0 && !!currentUserInGameName}
+                        placeholder={i === 0 ? "e.g. MortalPlayer" : "e.g. MortalPlayer"}
+                        className="w-full rounded-md border border-border bg-bg-primary/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-text-primary focus:border-accent focus:outline-none disabled:bg-white/[0.02] disabled:text-text-primary/50"
+                      />
+                    </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-[10px] sm:text-[10px] font-medium text-text-primary/80">
-                      In-Game Name
+                  {/* Player Picture Upload */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <label className="flex-1 flex items-center gap-2.5 rounded-lg border border-dashed border-border bg-bg-primary/40 px-3 py-2 cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
+                      <ImagePlus size={16} className="text-accent shrink-0" />
+                      <span className="text-[10px] sm:text-xs text-text-primary/70 font-medium truncate">
+                        {member.picture ? "Picture added - replace?" : "Upload Player Picture"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handlePlayerPictureUpload(i, e)}
+                        className="hidden"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={member.inGameName}
-                      onChange={(e) => updateMember(i, "inGameName", e.target.value)}
-                      disabled={i === 0 && !!currentUserInGameName}
-                      placeholder={i === 0 ? "e.g. MortalPlayer" : "e.g. MortalPlayer"}
-                      className="w-full rounded-md border border-border bg-bg-primary/60 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm text-text-primary focus:border-accent focus:outline-none disabled:bg-white/[0.02] disabled:text-text-primary/50"
-                    />
+                    {member.picture && (
+                      <div className="relative shrink-0">
+                        <img
+                          src={member.picture}
+                          alt={`Player ${i + 1} picture`}
+                          className="h-12 w-12 rounded-full object-cover border border-accent/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateMember(i, "picture", "")}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500/90 text-white text-[10px] font-bold leading-none hover:bg-red-600 transition-colors cursor-pointer"
+                          aria-label="Remove picture"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
               </div>
             ))}
           </div>
@@ -204,13 +286,56 @@ export function RegisterTournamentModal({
 
         {/* Team Name for Duo/Squad */}
         {!isSolo && (
-          <Input
-            label="Team Name *"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            placeholder="e.g. Mortal Esports"
-            required
-          />
+          <>
+            <Input
+              label="Team Name *"
+              value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder="e.g. Mortal Esports"
+              required
+            />
+
+            {/* Team Logo Upload */}
+            <div className="space-y-1.5">
+              <label className="block text-xs sm:text-sm font-medium text-text-primary/90">
+                Team Logo
+              </label>
+              <label className="flex items-center gap-2.5 rounded-lg border border-dashed border-border bg-bg-primary/40 px-3.5 py-3 cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
+                <ImagePlus size={18} className="text-accent shrink-0" />
+                <span className="text-xs sm:text-sm text-text-primary/70 font-medium truncate">
+                  {teamLogoBase64 ? "Logo added - replace?" : "Upload Team Logo"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleTeamLogoUpload}
+                  className="hidden"
+                />
+              </label>
+              {teamLogoBase64 && (
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img
+                      src={teamLogoBase64}
+                      alt="Team logo preview"
+                      className="h-14 w-14 rounded-lg object-cover border border-accent/30 bg-white/5"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTeamLogoBase64("")}
+                      className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500/90 text-white text-[10px] font-bold leading-none hover:bg-red-600 transition-colors cursor-pointer"
+                      aria-label="Remove logo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <span className="text-[10px] sm:text-xs text-text-primary/40">
+                    Logo will be shown to the admin for team verification (stored as PNG).
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <Input

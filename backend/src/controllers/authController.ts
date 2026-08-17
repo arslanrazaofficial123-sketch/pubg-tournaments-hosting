@@ -347,8 +347,8 @@ export async function changePasswordHandler(req: AuthenticatedRequest, res: Resp
 export async function uploadAvatarHandler(req: AuthenticatedRequest, res: Response) {
   try {
     const { dataUrl } = req.body || {};
-    if (!dataUrl || !/^data:image\/(png|jpe?g|webp);base64,/.test(String(dataUrl))) {
-      return res.status(400).json({ message: "Valid image data URL required (png, jpg, or webp)." });
+    if (!dataUrl || !/^data:image\/[a-z0-9.+-]+;base64,/i.test(String(dataUrl))) {
+      return res.status(400).json({ message: "Valid image data URL required." });
     }
     if (dataUrl.length > 5 * 1024 * 1024) {
       return res.status(400).json({ message: "Image too large (max 5MB)." });

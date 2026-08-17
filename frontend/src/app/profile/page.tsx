@@ -102,8 +102,8 @@ export default function ProfilePage() {
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
-    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
-      showAlert("Please choose a PNG, JPG, or WEBP image.", "error");
+    if (!/^image\//.test(file.type)) {
+      showAlert("Please choose an image file.", "error");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -323,11 +323,11 @@ export default function ProfilePage() {
               <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-accent/40 bg-bg-secondary text-accent">
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
               </span>
-              <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleAvatarChange} disabled={avatarUploading} />
+              <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} disabled={avatarUploading} />
             </label>
             <div>
               <p className="text-sm font-semibold text-text-primary">Profile picture</p>
-              <p className="text-xs text-text-primary/60">Click the circle to upload (PNG, JPG, WEBP, max 5MB).</p>
+              <p className="text-xs text-text-primary/60">Click the circle to upload (any image format, max 5MB — stored as PNG).</p>
             </div>
           </div>
 

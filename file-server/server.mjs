@@ -1,6 +1,7 @@
 import express from "express";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join, extname, normalize } from "node:path";
+import { join, normalize } from "node:path";
+import sharp from "sharp";
 
 const ROOT = "D:\\epix-data\\files";
 const PORT = 8081;
@@ -21,10 +22,9 @@ function safeName(value) {
 }
 
 function parseDataUrl(dataUrl) {
-  const match = String(dataUrl).match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/);
+  const match = String(dataUrl).match(/^data:image\/[a-z0-9.+-]+;base64,(.+)$/i);
   if (!match) return null;
-  const ext = match[1] === "jpeg" ? "jpg" : match[1];
-  return { ext, buffer: Buffer.from(match[2], "base64") };
+  return { buffer: Buffer.from(match[1], "base64") };
 }
 
 app.post("/api/upload", requireToken, async (req, res) => {
@@ -32,20 +32,28 @@ app.post("/api/upload", requireToken, async (req, res) => {
     const { kind, uid, teamName, dataUrl } = req.body || {};
     const parsed = parseDataUrl(dataUrl);
     if (!parsed) {
-      return res.status(400).json({ message: "Valid image data URL required (png, jpg, webp)." });
+      return res.status(400).json({ message: "Valid image data URL required." });
+    }
+
+    // Convert any image format to PNG before storing.
+    let pngBuffer;
+    try {
+      pngBuffer = await sharp(parsed.buffer).png().toBuffer();
+    } catch {
+      return res.status(400).json({ message: "Unsupported or invalid image file." });
     }
 
     let relDir;
     let fileName;
     if (kind === "avatar") {
       relDir = join("avatars");
-      fileName = `${safeName(uid || "anon")}.${parsed.ext}`;
+      fileName = `${safeName(uid || "anon")}.png`;
     } else if (kind === "team-logo") {
       relDir = join("teams", safeName(teamName || "team"));
-      fileName = `logo.${parsed.ext}`;
+      fileName = `logo.png`;
     } else if (kind === "player-picture") {
       relDir = join("teams", safeName(teamName || "team"), "players");
-      fileName = `${safeName(uid || "player")}.${parsed.ext}`;
+      fileName = `${safeName(uid || "player")}.png`;
     } else {
       return res.status(400).json({ message: "Unknown kind" });
     }
@@ -53,7 +61,7 @@ app.post("/api/upload", requireToken, async (req, res) => {
     const absDir = join(ROOT, relDir);
     await mkdir(absDir, { recursive: true });
     const absPath = join(absDir, fileName);
-    await writeFile(absPath, parsed.buffer);
+    await writeFile(absPath, pngBuffer);
 
     const urlPath = normalize(join("/files", relDir, fileName)).replace(/\\/g, "/");
     res.json({ url: urlPath });
