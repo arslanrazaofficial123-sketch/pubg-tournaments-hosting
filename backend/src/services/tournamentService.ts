@@ -3,6 +3,7 @@ import { RegistrationModel } from "../models/Registration.js";
 import { UserModel } from "../models/User.js";
 import { uploadImage } from "./storageService.js";
 import { deductEntryFee, refundEntryFee } from "./walletService.js";
+import { lookupPlayerByUid } from "./playerLookupService.js";
 import type { Tournament, TournamentStatus } from "../types/tournament.js";
 
 // registrationFee is free text ("Free", "500", "500 PKR") — extract the PKR number.
@@ -137,18 +138,36 @@ export async function registerPlayerForTournament(
     }
   }
 
-  // 2. Ensure each member is registered in the database, create if missing
+  // 2. Validate each member's UID exists in PUBG/Midasbuy
+  const lookupMap = new Map<string, { found: boolean; inGameName: string | null }>();
+  for (const member of payload.members) {
+    const lookup = await lookupPlayerByUid(member.uid.trim());
+    if (!lookup.found) {
+      throw new Error(`INVALID_PUBG_UID: ${member.uid}`);
+    }
+    // Optionally verify inGameName matches Midasbuy (case-insensitive)
+    const midasbuyName = lookup.inGameName?.toLowerCase().trim();
+    const providedName = member.inGameName?.toLowerCase().trim();
+    if (midasbuyName && providedName && providedName !== midasbuyName) {
+      throw new Error(`INGAMENAME_MISMATCH: ${member.uid}`);
+    }
+    lookupMap.set(member.uid.trim(), lookup);
+  }
+
+  // 3. Ensure each member is registered in the database, create if missing
   for (const member of payload.members) {
     const userInDb = await UserModel.findOne({ uid: member.uid });
+    const lookup = lookupMap.get(member.uid.trim());
+    const midasbuyName = lookup?.inGameName?.trim();
     if (!userInDb) {
       await UserModel.create({
         uid: member.uid.trim(),
-        inGameName: member.inGameName ? member.inGameName.trim() : undefined,
+        inGameName: midasbuyName || member.inGameName?.trim(),
       });
     } else if (member.inGameName && (!userInDb.inGameName || userInDb.inGameName.trim() === "")) {
       await UserModel.updateOne(
         { uid: member.uid },
-        { $set: { inGameName: member.inGameName.trim() } }
+        { $set: { inGameName: midasbuyName || member.inGameName.trim() } }
       );
     }
   }

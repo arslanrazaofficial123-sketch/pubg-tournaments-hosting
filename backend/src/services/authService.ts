@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { OAuth2Client } from "google-auth-library";
 import { UserModel } from "../models/User.js";
+import { lookupPlayerByUid } from "./playerLookupService.js";
 import type {
   LoginPayload,
   RegisterPayload,
@@ -54,6 +55,12 @@ export async function registerUser(
     throw new Error("UID_ALREADY_EXISTS");
   }
 
+  // Validate UID exists in PUBG/Midasbuy
+  const lookup = await lookupPlayerByUid(payload.uid.trim());
+  if (!lookup.found) {
+    throw new Error("INVALID_PUBG_UID");
+  }
+
   const existingWhatsapp = await UserModel.findOne({ whatsapp: payload.whatsapp.trim() }).lean();
   if (existingWhatsapp) {
     throw new Error("WHATSAPP_ALREADY_EXISTS");
@@ -62,6 +69,13 @@ export async function registerUser(
   const existingInGameName = await UserModel.findOne({ inGameName: payload.inGameName.trim() }).lean();
   if (existingInGameName) {
     throw new Error("INGAMENAME_ALREADY_EXISTS");
+  }
+
+  // Optionally verify inGameName matches Midasbuy (case-insensitive)
+  const midasbuyName = lookup.inGameName?.toLowerCase().trim();
+  const providedName = payload.inGameName.trim().toLowerCase();
+  if (midasbuyName && providedName !== midasbuyName) {
+    throw new Error("INGAMENAME_MISMATCH");
   }
 
   const passwordHash = await bcrypt.hash(payload.password, SALT_ROUNDS);
