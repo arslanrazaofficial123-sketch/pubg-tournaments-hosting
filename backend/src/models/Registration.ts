@@ -8,8 +8,14 @@ const registrationSchema = new Schema(
     teamLogo: { type: String },
     group: { type: String, required: true },
     whatsapp: { type: String, required: true },
-    receiptImage: { type: String, required: true },
-    transactionId: { type: String, required: true },
+    receiptImage: { type: String, required: false },
+    transactionId: { type: String, required: false },
+    paymentMethod: {
+      type: String,
+      enum: ["manual", "wallet"],
+      default: "manual",
+    },
+    entryFee: { type: Number, default: 0 },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

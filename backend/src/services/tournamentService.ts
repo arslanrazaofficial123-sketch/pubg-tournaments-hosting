@@ -2,7 +2,17 @@ import { TournamentModel } from "../models/Tournament.js";
 import { RegistrationModel } from "../models/Registration.js";
 import { UserModel } from "../models/User.js";
 import { uploadImage } from "./storageService.js";
+import { deductEntryFee, refundEntryFee } from "./walletService.js";
 import type { Tournament, TournamentStatus } from "../types/tournament.js";
+
+// registrationFee is free text ("Free", "500", "500 PKR") — extract the PKR number.
+function parseFee(fee: string | undefined): number {
+  if (!fee) return 0;
+  const normalized = String(fee).trim().toLowerCase();
+  if (normalized === "free" || normalized === "" || normalized === "0") return 0;
+  const parsed = parseFloat(normalized.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function toTournament(doc: Record<string, unknown>): Tournament {
   return {
@@ -103,8 +113,10 @@ export async function registerPlayerForTournament(
     teamName?: string;
     teamLogo?: string;
     whatsapp: string;
-    receiptImage: string;
-    transactionId: string;
+    receiptImage?: string;
+    transactionId?: string;
+    paymentMethod?: "manual" | "wallet";
+    registrarUid?: string;
     members: Array<{ uid: string; inGameName: string; picture?: string }>;
     group?: string;
   },
@@ -188,6 +200,25 @@ export async function registerPlayerForTournament(
   );
 
   const id = "reg-" + Math.random().toString(36).substring(2, 11);
+
+  // Wallet payment: auto-deduct the entry fee before creating the registration.
+  const paymentMethod = payload.paymentMethod === "wallet" ? "wallet" : "manual";
+  const entryFee = paymentMethod === "wallet" ? parseFee(tournament.registrationFee) : 0;
+
+  if (paymentMethod === "wallet" && entryFee > 0) {
+    const payerUid = payload.registrarUid || payload.members[0]?.uid;
+    if (!payerUid) {
+      throw new Error("REGISTRAR_REQUIRED");
+    }
+    await deductEntryFee(
+      payerUid,
+      entryFee,
+      tournamentId,
+      id,
+      `Entry fee for ${tournament.title}`,
+    );
+  }
+
   const registration = await RegistrationModel.create({
     id,
     tournamentId,
@@ -197,6 +228,8 @@ export async function registerPlayerForTournament(
     whatsapp: payload.whatsapp,
     receiptImage: payload.receiptImage,
     transactionId: payload.transactionId,
+    paymentMethod,
+    entryFee,
     status: "pending",
     members: membersWithPictures.map((m) => ({
       uid: m.uid,
@@ -227,6 +260,25 @@ export async function updateRegistrationStatus(
     return registration.toObject();
   }
 
+  // Wallet-paid registrations get their entry fee refunded when rejected.
+  if (
+    status === "rejected" &&
+    oldStatus !== "rejected" &&
+    registration.get("paymentMethod") === "wallet" &&
+    Number(registration.get("entryFee") || 0) > 0
+  ) {
+    const payerUid = (registration.get("members") || [])[0]?.uid;
+    if (payerUid) {
+      await refundEntryFee(
+        payerUid,
+        Number(registration.get("entryFee")),
+        String(registration.get("tournamentId")),
+        String(registration.get("id")),
+        "Entry fee refund (registration rejected)",
+      );
+    }
+  }
+
   registration.set("status", status);
   await registration.save();
 
@@ -237,7 +289,6 @@ export async function updateRegistrationStatus(
       { $inc: { registeredTeams: -1 } },
     );
   }
-  // If status changes from rejected to approved or pending, increment registeredTeams count
   else if ((status === "approved" || status === "pending") && oldStatus === "rejected") {
     await TournamentModel.updateOne(
       { id: registration.get("tournamentId") },

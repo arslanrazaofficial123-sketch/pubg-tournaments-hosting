@@ -1,7 +1,7 @@
 import { env } from "../config/env.js";
 
 export interface UploadImageParams {
-  kind: "avatar" | "team-logo" | "player-picture";
+  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof";
   uid?: string;
   teamName?: string;
   dataUrl: string;

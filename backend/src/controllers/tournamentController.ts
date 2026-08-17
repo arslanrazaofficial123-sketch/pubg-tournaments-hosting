@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { isValidStatus } from "../data/seedTournaments.js";
+import type { AuthenticatedRequest } from "../middleware/auth.js";
 import {
   findAllTournaments,
   findTournamentById,
@@ -79,7 +80,11 @@ export const updateTournament = asyncHandler(async (req: Request, res: Response)
 export const registerTournament = asyncHandler(async (req: Request, res: Response) => {
   const id = String(req.params.id);
   try {
-    const registration = await registerPlayerForTournament(id, req.body);
+    const authReq = req as AuthenticatedRequest;
+    const registration = await registerPlayerForTournament(id, {
+      ...req.body,
+      registrarUid: authReq.user?.uid,
+    });
     res.status(201).json(registration);
   } catch (err: any) {
     if (err.message === "TOURNAMENT_NOT_FOUND") {
@@ -94,6 +99,8 @@ export const registerTournament = asyncHandler(async (req: Request, res: Respons
       res.status(409).json({ message: "Team name is already registered in this tournament" });
     } else if (err.message === "MEMBER_NOT_FOUND" || err.message === "MEMBER_NAME_MISMATCH") {
       res.status(400).json({ message: err.details || err.message });
+    } else if (err.message === "INSUFFICIENT_WALLET_BALANCE") {
+      res.status(400).json({ message: "Insufficient wallet balance. Please top up your wallet or use manual payment." });
     } else {
       res.status(500).json({ message: err.message || "Registration failed" });
     }

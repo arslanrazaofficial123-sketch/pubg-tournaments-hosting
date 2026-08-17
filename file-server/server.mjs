@@ -8,7 +8,7 @@ const PORT = 8081;
 const TOKEN = process.env.FILES_TOKEN || "epix-local-files-token";
 
 const app = express();
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json({ limit: "40mb" }));
 
 function requireToken(req, res, next) {
   if (req.headers["x-files-token"] !== TOKEN) {
@@ -54,6 +54,9 @@ app.post("/api/upload", requireToken, async (req, res) => {
     } else if (kind === "player-picture") {
       relDir = join("teams", safeName(teamName || "team"), "players");
       fileName = `${safeName(uid || "player")}.png`;
+    } else if (kind === "wallet-proof") {
+      relDir = join("wallets", safeName(uid || "user"));
+      fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
     } else {
       return res.status(400).json({ message: "Unknown kind" });
     }

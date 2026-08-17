@@ -12,6 +12,7 @@ const userSchema = new Schema(
     name: { type: String, required: false, trim: true },
     avatar: { type: String, required: false },
     bio: { type: String, required: false, maxlength: 500 },
+    walletBalance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true },
 );
