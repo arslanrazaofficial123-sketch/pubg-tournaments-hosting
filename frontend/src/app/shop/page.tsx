@@ -117,10 +117,10 @@ function PackageCard({ pkg }: { pkg: Package }) {
   return (
     <article className="group relative flex flex-col rounded-2xl border border-border bg-bg-primary/50 overflow-hidden transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5">
       {/* Package Image */}
-      <div className="relative aspect-square bg-gradient-to-br from-accent/10 to-accent/5">
+      <div className="relative aspect-[4/3] sm:aspect-square bg-gradient-to-br from-accent/10 to-accent/5">
         {imgError ? (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent/10 to-accent/5">
-            <span className="text-3xl font-bold text-accent/50">{pkg.uc} UC</span>
+            <span className="text-2xl sm:text-3xl font-bold text-accent/50">{pkg.uc} UC</span>
           </div>
         ) : (
           <img
@@ -136,33 +136,38 @@ function PackageCard({ pkg }: { pkg: Package }) {
           </div>
         )}
         {discount > 0 && (
-          <div className="absolute top-3 left-3 rounded-full bg-red-600 px-2.5 py-0.5 text-[10px] font-bold text-white">
+          <div className="absolute top-2 left-2 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white sm:top-3 sm:left-3 sm:px-2.5">
             -{discount}%
+          </div>
+        )}
+        {pkg.inStock && (
+          <div className="absolute top-2 right-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white sm:top-3 sm:right-3 sm:px-2.5">
+            In Stock
           </div>
         )}
       </div>
 
       {/* Package Info */}
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-bold text-text-primary">{pkg.label}</h3>
-        <p className="mt-1 text-sm text-text-primary/50">{pkg.description}</p>
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <h3 className="font-bold text-sm text-text-primary sm:text-base">{pkg.label}</h3>
+        <p className="mt-0.5 text-xs text-text-primary/50 sm:text-sm">{pkg.description}</p>
 
-        <div className="mt-auto flex flex-col gap-2">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-black text-accent">{pkg.price.toLocaleString()} PKR</span>
-            <span className="text-sm line-through text-text-primary/40">{pkg.originalPrice.toLocaleString()} PKR</span>
+        <div className="mt-auto flex flex-col gap-1.5 pt-2">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-lg font-black text-accent sm:text-xl">{pkg.price.toLocaleString()} PKR</span>
+            <span className="text-xs line-through text-text-primary/40 sm:text-sm">{pkg.originalPrice.toLocaleString()} PKR</span>
           </div>
 
           <Link
             href={`/shop/checkout?package_id=${pkg.id}`}
             className={cn(
-              "inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition-colors",
+              "inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors sm:gap-2 sm:px-4 sm:text-sm",
               pkg.inStock
                 ? "bg-accent text-white hover:bg-accent-hover"
                 : "cursor-not-allowed bg-border text-text-primary/40"
             )}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             {pkg.inStock ? "Buy Now" : "Out of Stock"}
           </Link>
         </div>
@@ -178,52 +183,52 @@ export default function ShopPage() {
       description="Choose your UC package and continue to checkout. All packages are manually topped up to your account."
     >
       {/* Trust Indicators */}
-      <div className="mb-8 flex flex-wrap items-center justify-center gap-6 rounded-xl border border-border bg-bg-primary/50 p-4 sm:gap-8 sm:px-6">
-        <div className="flex items-center gap-2 text-sm text-text-primary/70">
-          <Shield className="h-5 w-5 text-accent" />
+      <div className="mb-6 grid grid-cols-3 gap-2 rounded-xl border border-border bg-bg-primary/50 p-3 sm:mb-8 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-6 sm:px-6">
+        <div className="flex flex-col items-center gap-1 text-center text-xs text-text-primary/70 sm:flex-row sm:gap-2 sm:text-sm">
+          <Shield className="h-4 w-4 text-accent sm:h-5 sm:w-5" />
           <span>Manual Top-up</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-text-primary/70">
-          <Truck className="h-5 w-5 text-accent" />
+        <div className="flex flex-col items-center gap-1 text-center text-xs text-text-primary/70 sm:flex-row sm:gap-2 sm:text-sm">
+          <Truck className="h-4 w-4 text-accent sm:h-5 sm:w-5" />
           <span>Instant Delivery</span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-text-primary/70">
-          <CreditCard className="h-5 w-5 text-accent" />
+        <div className="flex flex-col items-center gap-1 text-center text-xs text-text-primary/70 sm:flex-row sm:gap-2 sm:text-sm">
+          <CreditCard className="h-4 w-4 text-accent sm:h-5 sm:w-5" />
           <span>Secure Payment</span>
         </div>
       </div>
 
       {/* Packages Grid */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
         {packages.map((pkg) => (
           <PackageCard key={pkg.id} pkg={pkg} />
         ))}
       </div>
 
       {/* How it Works */}
-      <div className="mt-12 rounded-2xl border border-border bg-bg-primary/50 p-6 sm:p-8">
-        <h2 className="mb-4 text-center text-xl font-bold text-text-primary">How It Works</h2>
-        <div className="grid gap-6 text-center sm:grid-cols-3">
-          <div className="space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-              <Tag className="h-6 w-6" />
+      <div className="mt-8 rounded-2xl border border-border bg-bg-primary/50 p-4 sm:mt-12 sm:p-8">
+        <h2 className="mb-3 text-center text-lg font-bold text-text-primary sm:mb-4 sm:text-xl">How It Works</h2>
+        <div className="grid grid-cols-3 gap-3 text-center sm:gap-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent sm:h-12 sm:w-12">
+              <Tag className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
-            <h3 className="font-semibold text-text-primary">Choose Package</h3>
-            <p className="text-sm text-text-primary/50">Select the UC amount you want</p>
+            <h3 className="text-xs font-semibold text-text-primary sm:text-base">Choose Package</h3>
+            <p className="hidden text-xs text-text-primary/50 sm:block">Select the UC amount you want</p>
           </div>
-          <div className="space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-              <CreditCard className="h-6 w-6" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent sm:h-12 sm:w-12">
+              <CreditCard className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
-            <h3 className="font-semibold text-text-primary">Pay Securely</h3>
-            <p className="text-sm text-text-primary/50">JazzCash / EasyPaisa / Bank Transfer</p>
+            <h3 className="text-xs font-semibold text-text-primary sm:text-base">Pay Securely</h3>
+            <p className="hidden text-xs text-text-primary/50 sm:block">JazzCash / EasyPaisa / Bank Transfer</p>
           </div>
-          <div className="space-y-2">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-              <Truck className="h-6 w-6" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-accent/10 text-accent sm:h-12 sm:w-12">
+              <Truck className="h-4 w-4 sm:h-6 sm:w-6" />
             </div>
-            <h3 className="font-semibold text-text-primary">Get UC Instantly</h3>
-            <p className="text-sm text-text-primary/50">Manual top-up to your PUBG account</p>
+            <h3 className="text-xs font-semibold text-text-primary sm:text-base">Get UC Instantly</h3>
+            <p className="hidden text-xs text-text-primary/50 sm:block">Manual top-up to your PUBG account</p>
           </div>
         </div>
       </div>

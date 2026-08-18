@@ -121,6 +121,9 @@ export function SiteNavigation() {
     ? [
         { label: "Tournaments", href: "/" },
         { label: "Dashboard", href: "/dashboard" },
+        { label: "Wallet", href: "/wallet" },
+        { label: "Shop", href: "/shop" },
+        { label: "Player Photos", href: "/player-photos" },
         { label: "Profile", href: "/profile" },
         ...approvedRegistrations.map((reg) => ({
           label: reg.tournamentTitle,
@@ -143,11 +146,11 @@ export function SiteNavigation() {
           href={item.href}
           onClick={() => setIsMenuOpen(false)}
           className={cn(
-            "relative block rounded-lg px-2 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap",
+            "relative block rounded-lg px-3 py-2 text-xs sm:px-4 sm:py-2 sm:text-sm font-medium transition-all duration-300 whitespace-nowrap",
             isActive
               ? "bg-white/5 text-text-primary shadow-sm"
               : "text-text-primary/60 hover:bg-white/5 hover:text-text-primary/95",
-            mobile && "px-4 py-2.5"
+            mobile && "min-h-[44px] px-4 py-3 text-sm"
           )}
         >
           {item.label}
@@ -199,9 +202,17 @@ export function SiteNavigation() {
         </div>
 
         {isMenuOpen && (
-          <ul className="animate-fade-in-up flex flex-col gap-1 border-t border-white/5 pb-4 pt-3 md:hidden">
-            {navItems.map((item) => renderItem(item, true))}
-          </ul>
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            {/* Mobile menu panel */}
+            <ul className="animate-fade-in-up fixed inset-x-0 top-[57px] z-50 flex max-h-[calc(100vh-57px)] flex-col gap-1 overflow-y-auto border-t border-white/5 bg-bg-primary/98 px-4 pb-6 pt-3 shadow-2xl shadow-black/40 md:hidden">
+              {navItems.map((item) => renderItem(item, true))}
+            </ul>
+          </>
         )}
       </div>
     </nav>
