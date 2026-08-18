@@ -101,7 +101,7 @@ export async function sendOrderConfirmationEmail(to: string | null | undefined, 
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
         <p style="color: #9ca3af; font-size: 12px; text-align: center;">
-          Epix Esports &bull; Kallar Syedan, Rawalpindi, Pakistan
+          Epix Esports &bull; LDA Avenue 1, Lahore, Punjab, Pakistan
         </p>
       </div>
     </body>
