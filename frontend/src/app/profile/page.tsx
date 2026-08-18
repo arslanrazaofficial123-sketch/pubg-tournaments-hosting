@@ -16,7 +16,6 @@ import {
   uploadAvatar,
 } from "@/services/api";
 import { fetchMatches } from "@/services/api/matches";
-import { deleteAccount } from "@/services/api/auth";
 import type { UserProfile } from "@/types/auth";
 import type { Registration } from "@/services/api/tournaments";
 import type { Tournament } from "@/types/tournament";
@@ -205,21 +204,6 @@ export default function ProfilePage() {
     } finally {
       setIsChanging(false);
     }
-  };
-
-  const handleDeleteAccount = () => {
-    if (!user) return;
-    showConfirm("Are you sure you want to permanently delete your account?", async () => {
-      try {
-        await deleteAccount(user.uid);
-        showAlert("Account deleted successfully.", "success");
-        logout();
-        router.push("/");
-      } catch (error) {
-        console.error("Failed to delete account:", error);
-        showAlert("Failed to delete account. Please try again.", "error");
-      }
-    });
   };
 
   const careerStats = useMemo(() => {
@@ -489,16 +473,6 @@ export default function ProfilePage() {
               </Button>
             </div>
           )}
-
-          <div className="mt-6 border-t border-border pt-6">
-            <h3 className="mb-2 text-base font-bold text-text-primary">Account & Data</h3>
-            <p className="mb-3 text-sm text-text-primary/60">
-              Permanently delete your account and all data.
-            </p>
-            <Button variant="outline" onClick={handleDeleteAccount} className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60">
-              Delete Account
-            </Button>
-          </div>
         </section>
         {/* Teammates */}
         <section id="teammates" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
