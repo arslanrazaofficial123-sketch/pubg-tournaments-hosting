@@ -173,6 +173,8 @@ function loadTeamData(): TeamData | null {
       return;
     }
 
+    const savedTeam = loadTeamData();
+
     setIsSubmitting(true);
 
     try {
@@ -182,9 +184,11 @@ function loadTeamData(): TeamData | null {
         receiptImage: paymentMethod === "manual" ? receiptBase64 : undefined,
         transactionId: paymentMethod === "manual" ? transactionId.trim() : undefined,
         paymentMethod,
-        members: validMembers.map((m) => ({
+        teamLogo: savedTeam?.teamLogo || undefined,
+        members: validMembers.map((m, i) => ({
           uid: m.uid.trim(),
           inGameName: m.inGameName.trim() || m.uid.trim(),
+          picture: m.photoUrl || savedTeam?.players?.[i]?.picture || undefined,
         })),
         group: selectedGroup || undefined,
       });

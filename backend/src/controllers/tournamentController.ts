@@ -92,6 +92,7 @@ export const registerTournament = asyncHandler(async (req: Request, res: Respons
       tournamentTitle: tournament?.title || id,
       tournamentId: id,
       teamName: registration.teamName || registration.members?.[0]?.inGameName || "Solo",
+      teamLogo: registration.teamLogo,
       whatsapp: registration.whatsapp,
       members: registration.members,
       paymentMethod: registration.paymentMethod || "manual",

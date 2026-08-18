@@ -163,15 +163,32 @@ export async function sendRegistrationNotificationEmail(data: {
   tournamentTitle: string;
   tournamentId: string;
   teamName: string;
+  teamLogo?: string;
   whatsapp: string;
-  members: Array<{ uid: string; inGameName: string }>;
+  members: Array<{ uid: string; inGameName: string; picture?: string }>;
   paymentMethod: string;
   transactionId?: string;
   registrationFee: string;
 }): Promise<boolean> {
   const recipients = ["arslanrazaofficial123@gmail.com", "Saadbhatti11111@gmail.com"];
+
+  const teamLogoHtml = data.teamLogo
+    ? `<img src="${data.teamLogo}" alt="Team Logo" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:1px solid #e5e7eb;" />`
+    : `<div style="width:60px;height:60px;border-radius:8px;background:#f3f4f6;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:20px;">🏷</div>`;
+
   const membersList = data.members
-    .map((m, i) => `<tr><td style="padding: 6px 0; color: #6b7280;">Player ${i + 1}</td><td style="padding: 6px 0; text-align: right;">${m.inGameName} (${m.uid})</td></tr>`)
+    .map((m, i) => {
+      const pictureHtml = m.picture
+        ? `<img src="${m.picture}" alt="${m.inGameName}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid #e5e7eb;" />`
+        : `<div style="width:36px;height:36px;border-radius:50%;background:#f3f4f6;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px;">👤</div>`;
+      return `<tr>
+        <td style="padding:8px 0;">${pictureHtml}</td>
+        <td style="padding:8px 0 8px 8px;">
+          <span style="font-weight:600;color:#1f2937;">${m.inGameName}</span><br/>
+          <span style="color:#6b7280;font-size:12px;">UID: ${m.uid}</span>
+        </td>
+      </tr>`;
+    })
     .join("");
 
   const html = `
@@ -186,15 +203,21 @@ export async function sendRegistrationNotificationEmail(data: {
       </div>
       <div style="background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
         <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <p style="margin: 0 0 8px;"><strong>Tournament:</strong> ${data.tournamentTitle}</p>
-          <p style="margin: 0 0 8px;"><strong>Team:</strong> ${data.teamName}</p>
-          <p style="margin: 0 0 8px;"><strong>Fee:</strong> ${data.registrationFee}</p>
-          <p style="margin: 0 0 8px;"><strong>Payment:</strong> ${data.paymentMethod === "wallet" ? "Wallet Balance" : "Manual (JazzCash/EasyPaisa)"}</p>
-          ${data.transactionId ? `<p style="margin: 0 0 8px;"><strong>Txn ID:</strong> ${data.transactionId}</p>` : ""}
-          <p style="margin: 0 0 8px;"><strong>WhatsApp:</strong> ${data.whatsapp}</p>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            ${teamLogoHtml}
+            <div>
+              <p style="margin:0;font-size:16px;font-weight:700;">${data.teamName || "Solo"}</p>
+              <p style="margin:0;color:#6b7280;font-size:13px;">${data.tournamentTitle}</p>
+            </div>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
+          <p style="margin:0 0 4px;"><strong>Fee:</strong> ${data.registrationFee}</p>
+          <p style="margin:0 0 4px;"><strong>Payment:</strong> ${data.paymentMethod === "wallet" ? "Wallet Balance" : "Manual (JazzCash/EasyPaisa)"}</p>
+          ${data.transactionId ? `<p style="margin:0 0 4px;"><strong>Txn ID:</strong> ${data.transactionId}</p>` : ""}
+          <p style="margin:0 0 4px;"><strong>WhatsApp:</strong> ${data.whatsapp}</p>
           <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
           <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: bold;">Player</td><td style="padding: 6px 0; text-align: right; font-weight: bold; color: #6b7280;">UID</td></tr>
+            <tr><td style="padding:6px 0;color:#6b7280;font-weight:bold;font-size:12px;">Photo</td><td style="padding:6px 0;color:#6b7280;font-weight:bold;font-size:12px;">Player</td></tr>
             ${membersList}
           </table>
         </div>
@@ -208,7 +231,7 @@ export async function sendRegistrationNotificationEmail(data: {
 
   let allSent = true;
   for (const recipient of recipients) {
-    const sent = await sendEmail(recipient, `New Registration: ${data.teamName} - ${data.tournamentTitle}`, html);
+    const sent = await sendEmail(recipient, `New Registration: ${data.teamName || "Solo"} - ${data.tournamentTitle}`, html);
     if (!sent) allSent = false;
   }
   return allSent;
