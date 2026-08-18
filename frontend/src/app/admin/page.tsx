@@ -16,10 +16,10 @@ import type { UserProfile } from "@/types/auth";
 import { Button, Modal, useAlert } from "@/components/ui";
 import { ApiError } from "@/services/api/client";
 import { cn } from "@/lib/utils";
-import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare, LayoutDashboard, Star, Wallet, Database, ShoppingBag } from "lucide-react";
+import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare, LayoutDashboard, Star, Wallet, Database, ShoppingBag, Trash2 } from "lucide-react";
 import { AdminShopOrdersPanel } from "@/features/shop/components/AdminShopOrdersPanel";
 
-type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews" | "wallet" | "shop-orders";
+type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews" | "wallet" | "shop-orders" | "deletion-requests";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 B";
@@ -436,6 +436,50 @@ export default function AdminDashboard() {
         showAlert("Failed to delete review.", "error");
       }
     });
+  };
+
+  const [deletionRequests, setDeletionRequests] = useState<any[]>([]);
+  const [deletionStatusFilter, setDeletionStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (activeTab !== "deletion-requests") return;
+    async function loadDeletionRequests() {
+      try {
+        const query = deletionStatusFilter !== "all" ? `?status=${deletionStatusFilter}` : "";
+        const res = await fetch(`/api/data-deletion/admin${query}`, {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("admin_token") || ""}` },
+        });
+        const data = await res.json();
+        setDeletionRequests(data.requests || []);
+      } catch (err) {
+        console.error("Failed to fetch deletion requests:", err);
+      }
+    }
+    loadDeletionRequests();
+  }, [activeTab, deletionStatusFilter]);
+
+  const handleUpdateDeletionStatus = async (id: string, status: string, adminNote?: string) => {
+    try {
+      const res = await fetch(`/api/data-deletion/admin/${id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionStorage.getItem("admin_token") || ""}`,
+        },
+        body: JSON.stringify({ status, adminNote }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      const query = deletionStatusFilter !== "all" ? `?status=${deletionStatusFilter}` : "";
+      const listRes = await fetch(`/api/data-deletion/admin${query}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("admin_token") || ""}` },
+      });
+      const data = await listRes.json();
+      setDeletionRequests(data.requests || []);
+      showAlert(`Request ${status} successfully.`, "success");
+    } catch (err) {
+      console.error("Failed to update deletion request:", err);
+      showAlert("Failed to update request status.", "error");
+    }
   };
 
   const handleCreateMatchSubmit = async (e: React.FormEvent) => {
@@ -890,6 +934,12 @@ export default function AdminDashboard() {
       id: "shop-orders",
       label: "Shop Orders",
       icon: <ShoppingBag className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "deletion-requests",
+      label: "Deletion Requests",
+      icon: <Trash2 className="w-5 h-5 shrink-0" />,
       partnerAccess: false,
     },
     {
@@ -2663,6 +2713,69 @@ export default function AdminDashboard() {
             <AdminWalletPanel />
           ) : activeTab === "shop-orders" ? (
             <AdminShopOrdersPanel />
+          ) : activeTab === "deletion-requests" ? (
+            <div className="space-y-6 animate-fade-in-up">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-xl font-bold text-text-primary">Data Deletion Requests</h2>
+                <select
+                  value={deletionStatusFilter}
+                  onChange={(e) => setDeletionStatusFilter(e.target.value)}
+                  className="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text-primary"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="verified">Verified</option>
+                  <option value="processing">Processing</option>
+                  <option value="completed">Completed</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+
+              {deletionRequests.length === 0 ? (
+                <div className="rounded-xl border border-border bg-bg-secondary p-8 text-center text-text-primary/50">
+                  No deletion requests found.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {deletionRequests.map((req: any) => (
+                    <div key={req.id} className="rounded-xl border border-border bg-bg-secondary p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1 text-sm">
+                          <p className="font-semibold text-text-primary">{req.fullName}</p>
+                          <p className="text-text-primary/60">{req.emailOrUsername}</p>
+                          {req.whatsappOrPhone && <p className="text-text-primary/60">{req.whatsappOrPhone}</p>}
+                          {req.teamName && <p className="text-text-primary/60">Team: {req.teamName}</p>}
+                          {req.reason && <p className="text-text-primary/50 text-xs italic">&quot;{req.reason}&quot;</p>}
+                          <p className="text-text-primary/40 text-xs">ID: {req.id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                            req.status === "completed" ? "bg-emerald-600/20 text-emerald-400" :
+                            req.status === "rejected" ? "bg-red-600/20 text-red-400" :
+                            req.status === "processing" ? "bg-blue-600/20 text-blue-400" :
+                            req.status === "verified" ? "bg-amber-600/20 text-amber-400" :
+                            "bg-gray-600/20 text-gray-400"
+                          }`}>
+                            {req.status}
+                          </span>
+                          <select
+                            value={req.status}
+                            onChange={(e) => handleUpdateDeletionStatus(req.id, e.target.value)}
+                            className="rounded-lg border border-border bg-bg-primary px-2 py-1 text-xs text-text-primary"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="verified">Verified</option>
+                            <option value="processing">Processing</option>
+                            <option value="completed">Completed</option>
+                            <option value="rejected">Rejected</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-4 animate-fade-in-up">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/20 to-transparent border border-accent/20 flex items-center justify-center text-accent">

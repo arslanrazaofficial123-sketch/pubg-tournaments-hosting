@@ -9,6 +9,7 @@ const FOOTER_LINKS = [
   { label: "Contact Us", href: "/contact" },
   { label: "Rules & Terms", href: "/rules-terms" },
   { label: "Link UID", href: "/link-uid" },
+  { label: "Request Data Deletion", href: "/data-deletion" },
 ];
 
 export function Footer() {
@@ -124,9 +125,6 @@ export function Footer() {
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 sm:flex-row">
           <p className="text-sm text-text-primary/60">
             &copy; {new Date().getFullYear()} EPIX Esports. All rights reserved.
-          </p>
-          <p className="text-xs text-text-primary/40">
-            Powered by PUBG Mobile tournaments
           </p>
         </div>
       </div>
