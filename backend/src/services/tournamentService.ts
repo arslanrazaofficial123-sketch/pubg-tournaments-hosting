@@ -127,11 +127,12 @@ export async function registerPlayerForTournament(
     throw new Error("TOURNAMENT_NOT_FOUND");
   }
 
-  // 1. Validate unique team name for this tournament
+  // 1. Validate unique team name for this tournament (only pending/approved block re-registration)
   if (payload.teamName) {
     const existingTeam = await RegistrationModel.findOne({
       tournamentId,
       teamName: payload.teamName.trim(),
+      status: { $in: ["pending", "approved"] },
     }).lean();
     if (existingTeam) {
       throw new Error("TEAM_NAME_ALREADY_EXISTS");
