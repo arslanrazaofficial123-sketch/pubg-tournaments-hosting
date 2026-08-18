@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { UserModel } from "../models/User.js";
+import { uploadImage } from "../services/storageService.js";
 
 const router = Router();
 
@@ -24,11 +25,37 @@ router.put(
     const uid = (req as AuthenticatedRequest).user!.uid;
     const { teamName, teamLogo, format, players } = req.body;
 
+    let logoUrl = teamLogo;
+    if (teamLogo && teamLogo.startsWith("data:")) {
+      try {
+        logoUrl = await uploadImage({ kind: "team-logo", uid, dataUrl: teamLogo });
+      } catch {
+        logoUrl = teamLogo;
+      }
+    }
+
+    let processedPlayers = players;
+    if (Array.isArray(players)) {
+      processedPlayers = await Promise.all(
+        players.map(async (p: any) => {
+          if (p.picture && p.picture.startsWith("data:")) {
+            try {
+              const url = await uploadImage({ kind: "player-picture", uid, teamName, dataUrl: p.picture });
+              return { ...p, picture: url };
+            } catch {
+              return p;
+            }
+          }
+          return p;
+        }),
+      );
+    }
+
     const update: Record<string, any> = {};
     if (teamName !== undefined) update["teamData.teamName"] = teamName;
-    if (teamLogo !== undefined) update["teamData.teamLogo"] = teamLogo;
+    if (logoUrl !== undefined) update["teamData.teamLogo"] = logoUrl;
     if (format !== undefined) update["teamData.format"] = format;
-    if (players !== undefined) update["teamData.players"] = players;
+    if (processedPlayers !== undefined) update["teamData.players"] = processedPlayers;
 
     await UserModel.updateOne({ uid }, { $set: update });
     const user = await UserModel.findOne({ uid }).lean();

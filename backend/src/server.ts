@@ -2,6 +2,7 @@ import { createApp } from "./app.js";
 import { connectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
 import { sendErrorAlert } from "./services/emailService.js";
+import { UserModel } from "./models/User.js";
 
 let lastAlertAt = 0;
 const ALERT_COOLDOWN_MS = 60_000;
@@ -40,6 +41,14 @@ process.on("uncaughtException", (error) => {
 async function bootstrap() {
   try {
     await connectDatabase();
+    const indexes = await UserModel.collection.indexes();
+    for (const idx of indexes) {
+      const keys = Object.keys(idx.key);
+      if (idx.unique && (keys.includes("inGameName") || keys.includes("whatsapp"))) {
+        await UserModel.collection.dropIndex(idx.name!);
+        console.log(`Dropped unique index: ${idx.name}`);
+      }
+    }
   } catch (error) {
     reportUnhandled("Backend / Database Connection", error);
     throw error;
