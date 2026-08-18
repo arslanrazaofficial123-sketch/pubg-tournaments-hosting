@@ -9,6 +9,7 @@ import adminRoutes from "./adminRoutes.js";
 import walletRoutes from "./walletRoutes.js";
 import shopRoutes from "./shopRoutes.js";
 import dataDeletionRoutes from "./dataDeletionRoutes.js";
+import teamDataRoutes from "./teamDataRoutes.js";
 
 const router = Router();
 
@@ -22,6 +23,7 @@ router.use("/admin", adminRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/shop", shopRoutes);
 router.use("/data-deletion", dataDeletionRoutes);
+router.use("/team-data", teamDataRoutes);
 
 router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

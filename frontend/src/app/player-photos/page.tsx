@@ -8,6 +8,7 @@ import { ContentPage } from "@/components/layout/ContentPage";
 import { Button, Input } from "@/components/ui";
 import { useAlert } from "@/components/ui/AlertProvider";
 import { isLoggedIn, getSessionUser } from "@/lib/auth";
+import { getTeamData, saveTeamData as saveTeamDataApi } from "@/services/api/teamData";
 
 async function compressImage(file: File, maxBytes = 5 * 1024 * 1024): Promise<string> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -99,21 +100,26 @@ export default function TeamDataPage() {
     loadTeamData();
   }, [router]);
 
-  const loadTeamData = () => {
+  const loadTeamData = async () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as TeamData;
-        const user = getSessionUser();
-        if (user && parsed.players.length > 0) {
-          parsed.players[0].uid = parsed.players[0].uid || user.uid || "";
-          parsed.players[0].inGameName = parsed.players[0].inGameName || user.inGameName || "";
-        }
-        setTeamData(parsed);
+      const user = getSessionUser();
+      const backendData = user ? await getTeamData() : null;
+
+      if (backendData) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(backendData));
+        setTeamData(backendData);
       } else {
-        const user = getSessionUser();
-        if (user) {
-          setTeamData({
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as TeamData;
+          if (user && parsed.players.length > 0) {
+            parsed.players[0].uid = parsed.players[0].uid || user.uid || "";
+            parsed.players[0].inGameName = parsed.players[0].inGameName || user.inGameName || "";
+          }
+          setTeamData(parsed);
+          if (user) saveTeamDataApi(parsed);
+        } else if (user) {
+          const initial = {
             ...defaultTeam,
             players: [
               { uid: user.uid || "", inGameName: user.inGameName || "", picture: "" },
@@ -121,7 +127,9 @@ export default function TeamDataPage() {
               { uid: "", inGameName: "", picture: "" },
               { uid: "", inGameName: "", picture: "" },
             ],
-          });
+          };
+          setTeamData(initial);
+          saveTeamDataApi(initial);
         }
       }
     } catch (err) {
@@ -134,6 +142,7 @@ export default function TeamDataPage() {
   const saveTeamData = (data: TeamData) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     setTeamData(data);
+    saveTeamDataApi(data);
   };
 
   const handleTeamNameChange = (name: string) => {

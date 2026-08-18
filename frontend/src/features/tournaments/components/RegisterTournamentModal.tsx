@@ -9,6 +9,7 @@ import { getSessionUser } from "@/lib/auth";
 import { fetchUserByUid } from "@/services/api/auth";
 import { registerForTournament } from "@/services/api/tournaments";
 import { getWalletSummary } from "@/services/api/wallet";
+import { getTeamData } from "@/services/api/teamData";
 import { CreditCard, ChevronDown, ChevronUp, Wallet, User, Camera } from "lucide-react";
 
 function parseFee(fee: string | undefined): number {
@@ -48,6 +49,7 @@ export function RegisterTournamentModal({
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const [currentUserInGameName, setCurrentUserInGameName] = useState("");
+  const [savedTeamLogo, setSavedTeamLogo] = useState("");
 
 interface TeamData {
   teamName: string;
@@ -60,7 +62,9 @@ interface TeamData {
   }>;
 }
 
-function loadTeamData(): TeamData | null {
+async function loadTeamData(): Promise<TeamData | null> {
+  const backendData = await getTeamData();
+  if (backendData) return backendData;
   try {
     const stored = localStorage.getItem("team_data");
     if (stored) return JSON.parse(stored);
@@ -87,29 +91,30 @@ function loadTeamData(): TeamData | null {
       .then((s) => setWalletBalance(s.balance))
       .catch(() => setWalletBalance(null));
 
-    const savedTeam = loadTeamData();
+    loadTeamData().then((savedTeam) => {
+      if (savedTeam) {
+        setTeamName(savedTeam.teamName);
+        setSavedTeamLogo(savedTeam.teamLogo || "");
+      }
 
-    if (savedTeam) {
-      setTeamName(savedTeam.teamName);
-    }
-
-    const initialMembers = Array.from({ length: memberCount }, (_, i) => {
-      const savedPlayer = savedTeam?.players?.[i];
-      if (i === 0) {
+      const initialMembers = Array.from({ length: memberCount }, (_, i) => {
+        const savedPlayer = savedTeam?.players?.[i];
+        if (i === 0) {
+          return {
+            uid: currentUser.uid || savedPlayer?.uid || "",
+            inGameName: currentUser.inGameName || savedPlayer?.inGameName || "",
+            photoUrl: savedPlayer?.picture || "",
+          };
+        }
         return {
-          uid: currentUser.uid || savedPlayer?.uid || "",
-          inGameName: currentUser.inGameName || savedPlayer?.inGameName || "",
+          uid: savedPlayer?.uid || "",
+          inGameName: savedPlayer?.inGameName || "",
           photoUrl: savedPlayer?.picture || "",
         };
-      }
-      return {
-        uid: savedPlayer?.uid || "",
-        inGameName: savedPlayer?.inGameName || "",
-        photoUrl: savedPlayer?.picture || "",
-      };
-    });
+      });
 
-    setMembers(initialMembers);
+      setMembers(initialMembers);
+    });
   }, [isOpen, memberCount]);
 
   const updateMember = (index: number, key: "uid" | "inGameName", val: string) => {
@@ -173,7 +178,7 @@ function loadTeamData(): TeamData | null {
       return;
     }
 
-    const savedTeam = loadTeamData();
+    const savedTeam = await loadTeamData();
 
     setIsSubmitting(true);
 
@@ -270,20 +275,17 @@ function loadTeamData(): TeamData | null {
           <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3">
             <span className="text-[10px] font-bold uppercase tracking-wider text-accent block mb-1.5">Team</span>
             <div className="flex items-center gap-3">
-              {(() => {
-                const savedTeam = loadTeamData();
-                return savedTeam?.teamLogo ? (
-                  <img
-                    src={savedTeam.teamLogo}
-                    alt="Team Logo"
-                    className="h-10 w-10 rounded-lg object-cover border border-border shrink-0"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                    <User className="h-5 w-5 text-accent/50" />
-                  </div>
-                );
-              })()}
+              {savedTeamLogo ? (
+                <img
+                  src={savedTeamLogo}
+                  alt="Team Logo"
+                  className="h-10 w-10 rounded-lg object-cover border border-border shrink-0"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 text-accent/50" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-text-primary truncate">
                   {teamName || "No team name set"}

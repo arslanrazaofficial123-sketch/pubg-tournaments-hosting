@@ -13,6 +13,20 @@ const userSchema = new Schema(
     avatar: { type: String, required: false },
     bio: { type: String, required: false, maxlength: 500 },
     walletBalance: { type: Number, default: 0, min: 0 },
+    teamData: {
+      type: {
+        teamName: { type: String, default: "" },
+        teamLogo: { type: String, default: "" },
+        format: { type: String, enum: ["solo", "duo", "squad"], default: "squad" },
+        players: [{
+          uid: { type: String, default: "" },
+          inGameName: { type: String, default: "" },
+          picture: { type: String, default: "" },
+        }],
+      },
+      required: false,
+      default: undefined,
+    },
   },
   { timestamps: true },
 );
