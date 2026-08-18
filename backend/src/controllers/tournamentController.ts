@@ -15,6 +15,7 @@ import {
   updateRegistrationStats,
 } from "../services/tournamentService.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { sendRegistrationNotificationEmail } from "../utils/email.js";
 
 // ... [existing functions remain unchanged]
 
@@ -85,6 +86,19 @@ export const registerTournament = asyncHandler(async (req: Request, res: Respons
       ...req.body,
       registrarUid: authReq.user?.uid,
     });
+
+    const tournament = await findTournamentById(id);
+    sendRegistrationNotificationEmail({
+      tournamentTitle: tournament?.title || id,
+      tournamentId: id,
+      teamName: registration.teamName || registration.members?.[0]?.inGameName || "Solo",
+      whatsapp: registration.whatsapp,
+      members: registration.members,
+      paymentMethod: registration.paymentMethod || "manual",
+      transactionId: registration.transactionId,
+      registrationFee: tournament?.registrationFee || "Free",
+    }).catch(() => {});
+
     res.status(201).json(registration);
   } catch (err: any) {
     if (err.message === "TOURNAMENT_NOT_FOUND") {

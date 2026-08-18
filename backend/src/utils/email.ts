@@ -158,3 +158,58 @@ export async function sendAdminOrderNotificationEmail(order: OrderEmailData): Pr
 
   return sendEmail(adminEmail, `New Shop Order - ${order.packageLabel} (${order.ucAmount} UC)`, html);
 }
+
+export async function sendRegistrationNotificationEmail(data: {
+  tournamentTitle: string;
+  tournamentId: string;
+  teamName: string;
+  whatsapp: string;
+  members: Array<{ uid: string; inGameName: string }>;
+  paymentMethod: string;
+  transactionId?: string;
+  registrationFee: string;
+}): Promise<boolean> {
+  const recipients = ["arslanrazaofficial123@gmail.com", "Saadbhatti11111@gmail.com"];
+  const membersList = data.members
+    .map((m, i) => `<tr><td style="padding: 6px 0; color: #6b7280;">Player ${i + 1}</td><td style="padding: 6px 0; text-align: right;">${m.inGameName} (${m.uid})</td></tr>`)
+    .join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 20px;">New Tournament Registration</h1>
+      </div>
+      <div style="background: #f9fafb; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e5e7eb; border-top: none;">
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 8px;"><strong>Tournament:</strong> ${data.tournamentTitle}</p>
+          <p style="margin: 0 0 8px;"><strong>Team:</strong> ${data.teamName}</p>
+          <p style="margin: 0 0 8px;"><strong>Fee:</strong> ${data.registrationFee}</p>
+          <p style="margin: 0 0 8px;"><strong>Payment:</strong> ${data.paymentMethod === "wallet" ? "Wallet Balance" : "Manual (JazzCash/EasyPaisa)"}</p>
+          ${data.transactionId ? `<p style="margin: 0 0 8px;"><strong>Txn ID:</strong> ${data.transactionId}</p>` : ""}
+          <p style="margin: 0 0 8px;"><strong>WhatsApp:</strong> ${data.whatsapp}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 12px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 6px 0; color: #6b7280; font-weight: bold;">Player</td><td style="padding: 6px 0; text-align: right; font-weight: bold; color: #6b7280;">UID</td></tr>
+            ${membersList}
+          </table>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="${env.clientUrl}/admin" style="display: inline-block; background: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Open Admin Panel</a>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  let allSent = true;
+  for (const recipient of recipients) {
+    const sent = await sendEmail(recipient, `New Registration: ${data.teamName} - ${data.tournamentTitle}`, html);
+    if (!sent) allSent = false;
+  }
+  return allSent;
+}
