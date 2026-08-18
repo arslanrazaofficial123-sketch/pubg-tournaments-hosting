@@ -19,4 +19,5 @@ export const env = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   filesBaseUrl: process.env.FILES_BASE_URL || "http://127.0.0.1:8081",
   filesToken: process.env.FILES_TOKEN || "epix-local-files-token",
+  resendApiKey: process.env.RESEND_API_KEY || "",
 };
