@@ -11,6 +11,7 @@ export interface ShopOrder {
   pubgUid: string;
   inGameName: string;
   email?: string;
+  whatsapp?: string;
   transactionId?: string;
   receiptUrl?: string;
   walletDeducted: boolean;
@@ -30,6 +31,7 @@ export async function createShopOrder(payload: {
   pubgUid: string;
   inGameName: string;
   email?: string;
+  whatsapp?: string;
   transactionId?: string;
   receiptUrl?: string;
 }): Promise<{ order: ShopOrder }> {

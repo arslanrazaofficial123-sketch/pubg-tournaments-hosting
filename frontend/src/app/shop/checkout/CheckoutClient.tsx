@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { ContentPage } from "@/components/layout/ContentPage";
 import { Button, Input } from "@/components/ui";
 import { useAlert } from "@/components/ui/AlertProvider";
-import { getSessionUser, isLoggedIn } from "@/lib/auth";
+import { isLoggedIn } from "@/lib/auth";
 import { getWalletSummary } from "@/services/api/wallet";
 import { createShopOrder } from "@/services/api/shop";
 
@@ -40,6 +40,8 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
   const [isLoggedInUser, setIsLoggedInUser] = useState(false);
   const [userUid, setUserUid] = useState("");
   const [userInGameName, setUserInGameName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [userWhatsapp, setUserWhatsapp] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"manual" | "wallet">("manual");
   const [transactionId, setTransactionId] = useState("");
@@ -53,9 +55,6 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
     const loggedIn = isLoggedIn();
     setIsLoggedInUser(loggedIn);
     if (loggedIn) {
-      const user = getSessionUser();
-      if (user?.uid) setUserUid(user.uid);
-      if (user?.inGameName) setUserInGameName(user.inGameName);
       getWalletSummary()
         .then((s) => {
           setWalletBalance(s.balance);
@@ -86,6 +85,14 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
       showAlert("In-Game Name is required", "error");
       return;
     }
+    if (!userEmail.trim() || !userEmail.includes("@")) {
+      showAlert("Valid email is required for order confirmation", "error");
+      return;
+    }
+    if (!userWhatsapp.trim()) {
+      showAlert("WhatsApp number is required for order support", "error");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -103,6 +110,8 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
           paymentMethod: "wallet",
           pubgUid: userUid.trim(),
           inGameName: userInGameName.trim(),
+          email: userEmail.trim(),
+          whatsapp: userWhatsapp.trim(),
         });
         setOrderId(result.order.id);
         showAlert("Wallet payment processed! UC will be topped up shortly.", "success");
@@ -136,9 +145,10 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
         paymentMethod: "manual",
         pubgUid: userUid.trim(),
         inGameName: userInGameName.trim(),
+        email: userEmail.trim(),
+        whatsapp: userWhatsapp.trim(),
         transactionId: transactionId.trim(),
         receiptUrl: receiptBase64,
-        email: isLoggedInUser ? undefined : undefined,
       });
       setOrderId(result.order.id);
       showAlert("Order placed! Our team will process your UC top-up within 30 minutes.", "success");
@@ -233,6 +243,23 @@ export function CheckoutClient({ packageId }: CheckoutClientProps) {
                   value={userInGameName}
                   onChange={(e) => setUserInGameName(e.target.value)}
                   placeholder="Enter your in-game name"
+                  required
+                />
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 sm:gap-4">
+                <Input
+                  label="Email *"
+                  type="email"
+                  value={userEmail}
+                  onChange={(e) => setUserEmail(e.target.value)}
+                  placeholder="Order confirmation will be sent here"
+                  required
+                />
+                <Input
+                  label="WhatsApp Number *"
+                  value={userWhatsapp}
+                  onChange={(e) => setUserWhatsapp(e.target.value)}
+                  placeholder="e.g. 03001234567"
                   required
                 />
               </div>

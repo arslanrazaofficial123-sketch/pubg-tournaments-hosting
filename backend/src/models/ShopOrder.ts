@@ -17,6 +17,7 @@ const shopOrderSchema = new Schema(
     pubgUid: { type: String, required: true },
     inGameName: { type: String, required: true },
     email: { type: String, default: undefined },
+    whatsapp: { type: String, default: undefined },
     // Manual payment fields
     transactionId: { type: String },
     receiptUrl: { type: String },
@@ -46,6 +47,7 @@ export type ShopOrder = {
   pubgUid: string;
   inGameName: string;
   email?: string | null;
+  whatsapp?: string | null;
   transactionId?: string | null;
   receiptUrl?: string | null;
   walletDeducted: boolean;

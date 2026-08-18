@@ -20,6 +20,7 @@ interface OrderEmailData {
   pubgUid: string;
   inGameName: string;
   email?: string;
+  whatsapp?: string;
   transactionId?: string;
   createdAt: Date;
 }
@@ -64,6 +65,7 @@ export async function sendOrderConfirmationEmail(to: string | null | undefined, 
                 <tr><td style="padding: 8px 0; color: #6b7280;">Payment</td><td style="padding: 8px 0; text-align: right;">${methodLabel}</td></tr>
                 <tr><td style="padding: 8px 0; color: #6b7280;">Status</td><td style="padding: 8px 0; text-align: right;"><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${statusLabel}</span></td></tr>
                 ${order.transactionId ? `<tr><td style="padding: 8px 0; color: #6b7280;">Txn ID</td><td style="padding: 8px 0; text-align: right; font-family: monospace; font-size: 12px;">${order.transactionId}</td></tr>` : ""}
+                ${order.whatsapp ? `<tr><td style="padding: 8px 0; color: #6b7280;">WhatsApp</td><td style="padding: 8px 0; text-align: right; font-size: 12px;">${order.whatsapp}</td></tr>` : ""}
               </table>
             </div>
 

@@ -9,6 +9,7 @@ export async function createShopOrder(data: {
   pubgUid: string;
   inGameName: string;
   email?: string;
+  whatsapp?: string;
   transactionId?: string;
   receiptUrl?: string;
 }): Promise<ShopOrder> {

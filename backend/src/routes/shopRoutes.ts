@@ -21,10 +21,20 @@ function str(val: string | string[]): string {
 router.post(
   "/orders",
   asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const { packageId, packageLabel, ucAmount, price, paymentMethod, pubgUid, inGameName, email, transactionId, receiptUrl } = req.body as any;
+    const { packageId, packageLabel, ucAmount, price, paymentMethod, pubgUid, inGameName, email, whatsapp, transactionId, receiptUrl } = req.body as any;
 
     if (!packageId || !packageLabel || !ucAmount || !price || !paymentMethod || !pubgUid || !inGameName) {
       res.status(400).json({ message: "Missing required fields" });
+      return;
+    }
+
+    if (!email || !email.includes("@")) {
+      res.status(400).json({ message: "Valid email is required" });
+      return;
+    }
+
+    if (!whatsapp) {
+      res.status(400).json({ message: "WhatsApp number is required" });
       return;
     }
 
@@ -42,6 +52,7 @@ router.post(
       pubgUid,
       inGameName,
       email,
+      whatsapp,
       transactionId,
       receiptUrl,
     });
@@ -55,6 +66,8 @@ router.post(
         paymentMethod: order.paymentMethod,
         pubgUid: order.pubgUid,
         inGameName: order.inGameName,
+        email: order.email ?? undefined,
+        whatsapp: order.whatsapp ?? undefined,
         transactionId: order.transactionId ?? undefined,
         createdAt: order.createdAt,
       }).catch(() => {});
@@ -68,6 +81,8 @@ router.post(
       paymentMethod: order.paymentMethod,
       pubgUid: order.pubgUid,
       inGameName: order.inGameName,
+      email: order.email ?? undefined,
+      whatsapp: order.whatsapp ?? undefined,
       transactionId: order.transactionId ?? undefined,
       createdAt: order.createdAt,
     }).catch(() => {});
