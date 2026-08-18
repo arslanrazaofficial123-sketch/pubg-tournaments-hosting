@@ -82,6 +82,8 @@ export async function sendOrderConfirmationEmail(to: string | null | undefined, 
             <tr><td style="padding: 8px 0; color: #6b7280;">Amount</td><td style="padding: 8px 0; text-align: right; font-weight: 600; color: #7c3aed;">${order.price.toLocaleString()} PKR</td></tr>
             <tr><td style="padding: 8px 0; color: #6b7280;">Payment</td><td style="padding: 8px 0; text-align: right;">${methodLabel}</td></tr>
             <tr><td style="padding: 8px 0; color: #6b7280;">Status</td><td style="padding: 8px 0; text-align: right;"><span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${statusLabel}</span></td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">PUBG UID</td><td style="padding: 8px 0; text-align: right; font-weight: 600;">${order.pubgUid}</td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">In-Game Name</td><td style="padding: 8px 0; text-align: right;">${order.inGameName}</td></tr>
             ${order.transactionId ? `<tr><td style="padding: 8px 0; color: #6b7280;">Txn ID</td><td style="padding: 8px 0; text-align: right; font-family: monospace; font-size: 12px;">${order.transactionId}</td></tr>` : ""}
             ${order.whatsapp ? `<tr><td style="padding: 8px 0; color: #6b7280;">WhatsApp</td><td style="padding: 8px 0; text-align: right; font-size: 12px;">${order.whatsapp}</td></tr>` : ""}
           </table>
