@@ -49,18 +49,23 @@ export function RegisterTournamentModal({
 
   const [currentUserInGameName, setCurrentUserInGameName] = useState("");
 
-interface PlayerPhoto {
-  playerIndex: number;
-  playerName: string;
-  url: string;
+interface TeamData {
+  teamName: string;
+  teamLogo: string;
+  format: "solo" | "duo" | "squad";
+  players: Array<{
+    uid: string;
+    inGameName: string;
+    picture: string;
+  }>;
 }
 
-function loadPlayerPhotos(): PlayerPhoto[] {
+function loadTeamData(): TeamData | null {
   try {
-    const stored = localStorage.getItem("player_photos");
+    const stored = localStorage.getItem("team_data");
     if (stored) return JSON.parse(stored);
   } catch {}
-  return [];
+  return null;
 }
 
 // Initialize form with logged in user as member 0
@@ -72,7 +77,6 @@ function loadPlayerPhotos(): PlayerPhoto[] {
 
     setCurrentUserInGameName(currentUser.inGameName || "");
     setWhatsapp(currentUser.whatsapp || "");
-    setTeamName("");
     setTransactionId("");
     setReceiptBase64("");
     setSelectedGroup("");
@@ -83,21 +87,25 @@ function loadPlayerPhotos(): PlayerPhoto[] {
       .then((s) => setWalletBalance(s.balance))
       .catch(() => setWalletBalance(null));
 
-    const storedPhotos = loadPlayerPhotos();
+    const savedTeam = loadTeamData();
+
+    if (savedTeam) {
+      setTeamName(savedTeam.teamName);
+    }
 
     const initialMembers = Array.from({ length: memberCount }, (_, i) => {
-      const stored = storedPhotos.find(p => p.playerIndex === i);
+      const savedPlayer = savedTeam?.players?.[i];
       if (i === 0) {
         return {
-          uid: currentUser.uid,
-          inGameName: currentUser.inGameName || stored?.playerName || "",
-          photoUrl: stored?.url || "",
+          uid: currentUser.uid || savedPlayer?.uid || "",
+          inGameName: currentUser.inGameName || savedPlayer?.inGameName || "",
+          photoUrl: savedPlayer?.picture || "",
         };
       }
       return {
-        uid: "",
-        inGameName: stored?.playerName || "",
-        photoUrl: stored?.url || "",
+        uid: savedPlayer?.uid || "",
+        inGameName: savedPlayer?.inGameName || "",
+        photoUrl: savedPlayer?.picture || "",
       };
     });
 
@@ -253,17 +261,42 @@ function loadPlayerPhotos(): PlayerPhoto[] {
           </div>
         </div>
 
-        {/* Team Name for Duo/Squad */}
+        {/* Team Name + Logo for Duo/Squad */}
         {!isSolo && (
-          <>
-            <Input
-              label="Team Name *"
-              value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
-              placeholder="e.g. Mortal Esports"
-              required
-            />
-          </>
+          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-accent block mb-1.5">Team</span>
+            <div className="flex items-center gap-3">
+              {(() => {
+                const savedTeam = loadTeamData();
+                return savedTeam?.teamLogo ? (
+                  <img
+                    src={savedTeam.teamLogo}
+                    alt="Team Logo"
+                    className="h-10 w-10 rounded-lg object-cover border border-border shrink-0"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                    <User className="h-5 w-5 text-accent/50" />
+                  </div>
+                );
+              })()}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text-primary truncate">
+                  {teamName || "No team name set"}
+                </p>
+                {!teamName && (
+                  <a
+                    href="/player-photos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] font-bold text-accent hover:underline"
+                  >
+                    Set up team name on Team Data page
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         <Input
