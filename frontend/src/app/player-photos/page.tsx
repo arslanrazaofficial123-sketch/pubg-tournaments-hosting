@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Image, Trash2, User, Loader2, X, Shield, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,45 @@ import { ContentPage } from "@/components/layout/ContentPage";
 import { Button, Input } from "@/components/ui";
 import { useAlert } from "@/components/ui/AlertProvider";
 import { isLoggedIn, getSessionUser } from "@/lib/auth";
+
+async function compressImage(file: File, maxBytes = 5 * 1024 * 1024): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  if (new Blob([dataUrl]).size <= maxBytes) return dataUrl;
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new window.Image();
+    el.onload = () => resolve(el);
+    el.onerror = reject;
+    el.src = dataUrl;
+  });
+
+  let { width, height } = img;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+
+  let quality = 0.7;
+  for (let i = 0; i < 8; i++) {
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    const result = canvas.toDataURL("image/jpeg", quality);
+    if (new Blob([result]).size <= maxBytes) return result;
+    quality -= 0.08;
+    width = Math.round(width * 0.85);
+    height = Math.round(height * 0.85);
+  }
+
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  ctx.drawImage(img, 0, 0);
+  return canvas.toDataURL("image/jpeg", 0.5);
+}
 
 interface TeamData {
   teamName: string;
@@ -102,28 +141,26 @@ export default function TeamDataPage() {
     saveTeamData({ ...teamData, players });
   };
 
-  const handlePictureUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       showAlert("Please select an image file", "error");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showAlert("Image must be less than 5MB", "error");
-      return;
-    }
 
     setUploadingPlayer(index);
-    const reader = new FileReader();
-    reader.onload = (event) => {
+    try {
+      const compressed = await compressImage(file);
       const players = [...teamData.players];
-      players[index] = { ...players[index], picture: event.target?.result as string };
+      players[index] = { ...players[index], picture: compressed };
       saveTeamData({ ...teamData, players });
-      setUploadingPlayer(null);
       showAlert(`Photo uploaded for Player ${index + 1}`, "success");
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      showAlert("Failed to process image", "error");
+    } finally {
+      setUploadingPlayer(null);
+    }
   };
 
   const handleRemovePicture = (index: number) => {
@@ -133,26 +170,24 @@ export default function TeamDataPage() {
     showAlert("Photo removed", "info");
   };
 
-  const handleTeamLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTeamLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       showAlert("Please select an image file", "error");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showAlert("Image must be less than 5MB", "error");
-      return;
-    }
 
     setUploadingLogo(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      saveTeamData({ ...teamData, teamLogo: event.target?.result as string });
-      setUploadingLogo(false);
+    try {
+      const compressed = await compressImage(file);
+      saveTeamData({ ...teamData, teamLogo: compressed });
       showAlert("Team logo uploaded", "success");
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      showAlert("Failed to process image", "error");
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleRemoveTeamLogo = () => {
