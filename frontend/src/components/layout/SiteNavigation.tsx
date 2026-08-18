@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 
 const NAV_ITEMS = [
   { label: "Tournaments", href: "/" },
+  { label: "Shop", href: "/shop" },
   { label: "Reviews", href: "/reviews" },
   { label: "About Us", href: "/about" },
   { label: "Contact Us", href: "/contact" },
@@ -123,6 +124,7 @@ export function SiteNavigation() {
         { label: "Dashboard", href: "/dashboard" },
         { label: "Wallet", href: "/wallet" },
         { label: "Shop", href: "/shop" },
+        { label: "Order History", href: "/shop/history" },
         { label: "Player Photos", href: "/player-photos" },
         { label: "Profile", href: "/profile" },
         ...approvedRegistrations.map((reg) => ({
