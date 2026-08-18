@@ -161,15 +161,15 @@ function loadTeamData(): TeamData | null {
       }
     }
 
-    if (!isSolo && !teamName.trim()) {
-      setErrorMsg("Team Name is required for group formats.");
+    const validMembers = members.filter((m) => m.uid.trim());
+
+    if (validMembers.length === 0) {
+      setErrorMsg("At least one team member must have a UID.");
       return;
     }
 
-    // Verify all members have UID
-    const incomplete = members.find((m) => !m.uid.trim());
-    if (incomplete) {
-      setErrorMsg("All team members must have a UID.");
+    if (!isSolo && !teamName.trim()) {
+      setErrorMsg("Team Name is required for group formats. Set it on the Team Data page.");
       return;
     }
 
@@ -177,14 +177,14 @@ function loadTeamData(): TeamData | null {
 
     try {
       await registerForTournament(tournament.id, {
-        teamName: isSolo ? (members[0].inGameName || members[0].uid) : teamName.trim(),
+        teamName: isSolo ? (validMembers[0].inGameName || validMembers[0].uid) : teamName.trim(),
         whatsapp: whatsapp.trim(),
         receiptImage: paymentMethod === "manual" ? receiptBase64 : undefined,
         transactionId: paymentMethod === "manual" ? transactionId.trim() : undefined,
         paymentMethod,
-        members: members.map((m) => ({
+        members: validMembers.map((m) => ({
           uid: m.uid.trim(),
-          inGameName: m.inGameName.trim(),
+          inGameName: m.inGameName.trim() || m.uid.trim(),
         })),
         group: selectedGroup || undefined,
       });
