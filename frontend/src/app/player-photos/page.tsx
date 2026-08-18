@@ -13,7 +13,7 @@ async function compressImage(file: File, maxBytes = 5 * 1024 * 1024): Promise<st
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
 
@@ -22,29 +22,38 @@ async function compressImage(file: File, maxBytes = 5 * 1024 * 1024): Promise<st
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const el = new window.Image();
     el.onload = () => resolve(el);
-    el.onerror = reject;
+    el.onerror = () => reject(new Error("Failed to load image"));
     el.src = dataUrl;
   });
 
   let { width, height } = img;
+  if (!width || !height) throw new Error("Invalid image dimensions");
+
   const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
 
   let quality = 0.7;
   for (let i = 0; i < 8; i++) {
     canvas.width = width;
     canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
     ctx.drawImage(img, 0, 0, width, height);
-    const result = canvas.toDataURL("image/jpeg", quality);
-    if (new Blob([result]).size <= maxBytes) return result;
+    try {
+      const result = canvas.toDataURL("image/jpeg", quality);
+      if (new Blob([result]).size <= maxBytes) return result;
+    } catch {
+      // toDataURL can fail for tainted canvas or unsupported formats
+    }
     quality -= 0.08;
     width = Math.round(width * 0.85);
     height = Math.round(height * 0.85);
   }
 
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  ctx.drawImage(img, 0, 0);
+  canvas.width = Math.round(img.naturalWidth * 0.5);
+  canvas.height = Math.round(img.naturalHeight * 0.5);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/jpeg", 0.5);
 }
 
