@@ -210,7 +210,7 @@ function loadPlayerPhotos(): PlayerPhoto[] {
             Team Members ({members.length})
           </h4>
           <span className="text-[10px] sm:text-xs text-text-primary/45 block">
-            Player details loaded from Player Photos page. Edit there to update.
+            Player details loaded from Team Data page. Edit there to update.
           </span>
 
           <div className="space-y-2">

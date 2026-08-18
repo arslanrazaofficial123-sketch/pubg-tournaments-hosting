@@ -125,7 +125,7 @@ export function SiteNavigation() {
         { label: "Wallet", href: "/wallet" },
         { label: "Shop", href: "/shop" },
         { label: "Order History", href: "/shop/history" },
-        { label: "Player Photos", href: "/player-photos" },
+        { label: "Team Data", href: "/player-photos" },
         { label: "Profile", href: "/profile" },
         ...approvedRegistrations.map((reg) => ({
           label: reg.tournamentTitle,
