@@ -473,6 +473,16 @@ export default function ProfilePage() {
               </Button>
             </div>
           )}
+
+          <div className="mt-6 border-t border-border pt-6">
+            <h3 className="mb-2 text-base font-bold text-text-primary">Account & Data</h3>
+            <p className="mb-3 text-sm text-text-primary/60">
+              Want to delete your account? Submit a data deletion request.
+            </p>
+            <Button variant="outline" onClick={() => router.push("/data-deletion")} className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60">
+              Request Data Deletion
+            </Button>
+          </div>
         </section>
         {/* Teammates */}
         <section id="teammates" className="mb-6 rounded-2xl border border-border bg-bg-secondary p-6">
