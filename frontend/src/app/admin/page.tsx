@@ -6,21 +6,32 @@ import { getTournaments, createTournament, deleteTournament, updateTournament, f
 import { fetchMatches, createMatch, deleteMatch, updateMatch } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
-import { fetchAllUsers, deleteAccount, verifyAdminPassword, changeAdminPassword } from "@/services/api/auth";
+import { fetchAllUsers, deleteAccount, verifyAdminPassword, verifyPartnerPassword, changeAdminPassword, changePartnerPassword } from "@/services/api/auth";
+import { fetchDatabaseStats, type DatabaseStats, type DatabaseCollectionStats } from "@/services/api/admin";
 import { TournamentModal } from "@/features/tournaments/components/TournamentModal";
 import { AddTournamentModal } from "@/features/tournaments/components/AddTournamentModal";
+import { AdminWalletPanel } from "@/features/wallet/components/AdminWalletPanel";
 import type { Tournament } from "@/types/tournament";
 import type { UserProfile } from "@/types/auth";
 import { Button, Modal, useAlert } from "@/components/ui";
+import { ApiError } from "@/services/api/client";
 import { cn } from "@/lib/utils";
-import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare } from "lucide-react";
+import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare, LayoutDashboard, Star, Wallet, Database, ShoppingBag } from "lucide-react";
+import { AdminShopOrdersPanel } from "@/features/shop/components/AdminShopOrdersPanel";
 
-type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews";
+type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews" | "wallet" | "shop-orders";
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
+    <div className="admin-empty flex flex-col items-center justify-center py-12 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-transparent text-accent border border-accent/20">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="28"
@@ -47,15 +58,29 @@ function EmptyState({ message }: { message: string }) {
 export default function AdminDashboard() {
   const { showAlert, showConfirm } = useAlert();
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [adminRole, setAdminRole] = useState<"admin" | "partner">("admin");
+  const [loginMode, setLoginMode] = useState<"admin" | "partner">("admin");
   const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [partnerPasswordInput, setPartnerPasswordInput] = useState("");
   const [adminAuthError, setAdminAuthError] = useState("");
   const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
 
   useEffect(() => {
-    // Clear admin authentication state on load/refresh so they must login again
-    sessionStorage.removeItem("admin_authenticated");
-    sessionStorage.removeItem("admin_token");
-    setIsAdminAuthenticated(false);
+    // Restore admin/partner session on refresh so the panel stays open
+    const isAuthenticated = sessionStorage.getItem("admin_authenticated") === "true";
+    if (isAuthenticated) {
+      const storedRole = sessionStorage.getItem("admin_role") === "partner" ? "partner" : "admin";
+      setAdminRole(storedRole);
+      if (storedRole === "partner") {
+        setActiveTab("registrations");
+      }
+      setIsAdminAuthenticated(true);
+    } else {
+      sessionStorage.removeItem("admin_authenticated");
+      sessionStorage.removeItem("admin_token");
+      sessionStorage.removeItem("admin_role");
+      setIsAdminAuthenticated(false);
+    }
   }, []);
 
   const handleAdminAuthSubmit = async (e: React.FormEvent) => {
@@ -63,12 +88,25 @@ export default function AdminDashboard() {
     setAdminAuthError("");
     setIsVerifyingAdmin(true);
     try {
-      const success = await verifyAdminPassword(adminPasswordInput);
-      if (success) {
-        sessionStorage.setItem("admin_authenticated", "true");
-        setIsAdminAuthenticated(true);
+      if (loginMode === "partner") {
+        const success = await verifyPartnerPassword(partnerPasswordInput);
+        if (success) {
+          sessionStorage.setItem("admin_authenticated", "true");
+          setAdminRole("partner");
+          setActiveTab("registrations");
+          setIsAdminAuthenticated(true);
+        } else {
+          setAdminAuthError("Incorrect partner password.");
+        }
       } else {
-        setAdminAuthError("Incorrect admin password.");
+        const success = await verifyAdminPassword(adminPasswordInput);
+        if (success) {
+          sessionStorage.setItem("admin_authenticated", "true");
+          setAdminRole("admin");
+          setIsAdminAuthenticated(true);
+        } else {
+          setAdminAuthError("Incorrect admin password.");
+        }
       }
     } catch {
       setAdminAuthError("Failed to authenticate. Server error.");
@@ -80,10 +118,18 @@ export default function AdminDashboard() {
   const handleLogout = () => {
     sessionStorage.removeItem("admin_authenticated");
     sessionStorage.removeItem("admin_token");
+    sessionStorage.removeItem("admin_role");
     setIsAdminAuthenticated(false);
+    setActiveTab("overview");
   };
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("tournaments");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("overview");
+
+  useEffect(() => {
+    if (isAdminAuthenticated && adminRole === "partner" && !["registrations", "groups", "matches", "users"].includes(activeTab)) {
+      setActiveTab("registrations");
+    }
+  }, [isAdminAuthenticated, adminRole, activeTab]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -92,6 +138,9 @@ export default function AdminDashboard() {
   const [activeMatchTournamentId, setActiveMatchTournamentId] = useState<string | null>(null);
   const [activeMatchDay, setActiveMatchDay] = useState<number>(1);
   const [matches, setMatches] = useState<any[]>([]);
+  const [allMatches, setAllMatches] = useState<any[]>([]);
+  const [dbStats, setDbStats] = useState<DatabaseStats | null>(null);
+  const [dbStatsError, setDbStatsError] = useState(false);
   const [activeLeaderboardTournamentId, setActiveLeaderboardTournamentId] = useState<string | null>(null);
   const [editingStatsRegId, setEditingStatsRegId] = useState<string | null>(null);
   const [statsKills, setStatsKills] = useState<number>(0);
@@ -119,6 +168,14 @@ export default function AdminDashboard() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [changePasswordError, setChangePasswordError] = useState("");
   const [changePasswordSuccess, setChangePasswordSuccess] = useState("");
+
+  // States for changing partner password in Settings
+  const [partnerCurrentPassword, setPartnerCurrentPassword] = useState("");
+  const [partnerNewPassword, setPartnerNewPassword] = useState("");
+  const [partnerConfirmNewPassword, setPartnerConfirmNewPassword] = useState("");
+  const [isChangingPartnerPassword, setIsChangingPartnerPassword] = useState(false);
+  const [changePartnerPasswordError, setChangePartnerPasswordError] = useState("");
+  const [changePartnerPasswordSuccess, setChangePartnerPasswordSuccess] = useState("");
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +210,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleChangePartnerPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangePartnerPasswordError("");
+    setChangePartnerPasswordSuccess("");
+
+    if (!partnerCurrentPassword || !partnerNewPassword || !partnerConfirmNewPassword) {
+      setChangePartnerPasswordError("All fields are required.");
+      return;
+    }
+
+    if (partnerNewPassword !== partnerConfirmNewPassword) {
+      setChangePartnerPasswordError("New password and confirm password do not match.");
+      return;
+    }
+
+    setIsChangingPartnerPassword(true);
+    try {
+      const res = await changePartnerPassword(partnerCurrentPassword, partnerNewPassword);
+      if (res.success) {
+        setChangePartnerPasswordSuccess(res.message || "Partner password updated successfully.");
+        setPartnerCurrentPassword("");
+        setPartnerNewPassword("");
+        setPartnerConfirmNewPassword("");
+      } else {
+        setChangePartnerPasswordError(res.message || "Failed to change partner password.");
+      }
+    } catch (err: any) {
+      setChangePartnerPasswordError(err?.message || "Failed to change partner password. Server error.");
+    } finally {
+      setIsChangingPartnerPassword(false);
+    }
+  };
+
   const currentMatchTournament = tournaments.find((t) => t.id === activeMatchTournamentId);
   const groupsList = currentMatchTournament
     ? Array.from(
@@ -161,7 +251,7 @@ export default function AdminDashboard() {
     )
     : ["Group A"];
 
-  const [expandedReceipt, setExpandedReceipt] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<{ src: string; title: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -170,6 +260,7 @@ export default function AdminDashboard() {
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdminAuthenticated) {
@@ -179,14 +270,31 @@ export default function AdminDashboard() {
     setIsLoading(true);
     async function loadData() {
       try {
-        const [tourns, usrList, regList] = await Promise.all([
+        const isPartner = sessionStorage.getItem("admin_role") === "partner";
+        const [tourns, regList, usrList, allMatchList] = await Promise.all([
           getTournaments(),
-          fetchAllUsers(),
           fetchAllRegistrations(),
+          fetchAllUsers(),
+          fetchMatches(),
         ]);
         setTournaments(tourns);
-        setUsers(usrList);
         setRegistrations(regList);
+        setUsers(usrList);
+        setAllMatches(allMatchList);
+
+        if (!isPartner) {
+          const [reviewList, stats] = await Promise.all([
+            getAdminReviews(),
+            fetchDatabaseStats(),
+          ]);
+          setReviews(reviewList);
+          setDbStats(stats);
+          setDbStatsError(stats === null);
+        } else {
+          setReviews([]);
+          setDbStats(null);
+          setDbStatsError(false);
+        }
 
         const activeTourns = tourns.filter((t) => t.status === "registration_open" || t.status === "ongoing");
         if (activeTourns.length > 0) {
@@ -205,12 +313,18 @@ export default function AdminDashboard() {
         }
       } catch (err) {
         console.error("Failed to load admin data:", err);
+        if (err instanceof ApiError && err.status === 401) {
+          sessionStorage.removeItem("admin_authenticated");
+          sessionStorage.removeItem("admin_token");
+          sessionStorage.removeItem("admin_role");
+          setIsAdminAuthenticated(false);
+        }
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
-  }, [isAdminAuthenticated]);
+  }, [isAdminAuthenticated, adminRole]);
 
   const handleUpdateRegStatus = async (regId: string, status: "approved" | "rejected" | "pending") => {
     try {
@@ -552,36 +666,138 @@ export default function AdminDashboard() {
     (r) => r.tournamentId === activeRegTournamentId
   );
 
+  // Overview / website statistics
+  const regOpenCount = tournaments.filter((t) => t.status === "registration_open").length;
+  const approvedRegs = registrations.filter((r) => r.status === "approved").length;
+  const pendingRegs = registrations.filter((r) => r.status === "pending").length;
+  const rejectedRegs = registrations.filter((r) => r.status === "rejected").length;
+  const totalPlayers = users.length;
+  const totalMatchCount = allMatches.length;
+
+  const approvedReviews = reviews.filter((r) => r.status === "approved").length;
+  const pendingReviews = reviews.filter((r) => r.status === "pending").length;
+  const rejectedReviews = reviews.filter((r) => r.status === "rejected").length;
+  const avgRating = approvedReviews > 0
+    ? (
+      reviews
+        .filter((r) => r.status === "approved")
+        .reduce((acc, r) => acc + (r.rating || 0), 0) / approvedReviews
+    ).toFixed(1)
+    : "0.0";
+
+  const totalSlots = tournaments.reduce((acc, t) => acc + (Number(t.maxTeams) || 0), 0);
+  const filledSlots = tournaments.reduce((acc, t) => acc + (Number(t.registeredTeams) || 0), 0);
+  const fillRate = totalSlots > 0 ? Math.min(100, Math.round((filledSlots / totalSlots) * 100)) : 0;
+
+  const parseMoney = (s: string) => {
+    if (!s || /free/i.test(s)) return 0;
+    const num = s.replace(/[^0-9.]/g, "");
+    return num ? Number(num) : 0;
+  };
+  const totalPrizePool = tournaments.reduce((acc, t) => acc + parseMoney(t.prizePool), 0);
+  const totalEntryFees = registrations.reduce((acc, r) => acc + (r.status === "approved" ? parseMoney(tournaments.find((t) => t.id === r.tournamentId)?.registrationFee || "") : 0), 0);
+
+  const topTeams = [...registrations]
+    .filter((r) => r.status === "approved" && (Number(r.totalPoints) || 0) > 0)
+    .sort((a, b) => (Number(b.totalPoints) || 0) - (Number(a.totalPoints) || 0))
+    .slice(0, 5);
+
+  const recentRegs = [...registrations]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6);
+
+  const recentReviews = [...reviews]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4);
+
+  const teamsPerTournament = tournaments.map((t) => ({
+    ...t,
+    pct: t.maxTeams > 0 ? Math.min(100, Math.round((Number(t.registeredTeams) / Number(t.maxTeams)) * 100)) : 0,
+  }));
+
+  const tournamentStatuses = [
+    { label: "Registration Open", val: regOpenCount, color: "bg-emerald-500" },
+    { label: "Upcoming", val: upcomingCount, color: "bg-sky-500" },
+    { label: "Ongoing", val: ongoingCount, color: "bg-accent" },
+    { label: "Ended", val: endedCount, color: "bg-text-primary/40" },
+  ];
+  const registrationStatuses = [
+    { label: "Approved", val: approvedRegs, color: "bg-emerald-500" },
+    { label: "Pending", val: pendingRegs, color: "bg-amber-500" },
+    { label: "Rejected", val: rejectedRegs, color: "bg-red-500" },
+  ];
+  const reviewStatuses = [
+    { label: "Approved", val: approvedReviews, color: "bg-emerald-500" },
+    { label: "Pending", val: pendingReviews, color: "bg-amber-500" },
+    { label: "Rejected", val: rejectedReviews, color: "bg-red-500" },
+  ];
+
   if (!isAdminAuthenticated) {
     return (
-      <div className="min-h-screen bg-bg-primary text-text-primary flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-bg-secondary rounded-xl border border-border p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-accent/5 blur-3xl" />
-          
-          <div className="flex flex-col items-center text-center space-y-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/15 text-accent border border-accent/20">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+      <div className="min-h-screen bg-bg-primary text-text-primary flex items-center justify-center p-4 admin-shell">
+        <div className="w-full max-w-md bg-bg-secondary/80 backdrop-blur-xl rounded-2xl border border-border p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-40 w-40 translate-x-10 -translate-y-10 rounded-full bg-accent/10 blur-3xl" />
+          <div className="absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-accent/5 blur-3xl" />
+
+          <div className="relative flex flex-col items-center text-center space-y-3">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-accent/30 blur-xl" />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/25 to-accent/5 text-accent border border-accent/30 shadow-lg shadow-accent/20">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
             </div>
-            <h1 className="text-xl font-black uppercase tracking-tight">Admin Authentication</h1>
+            <h1 className="text-xl font-black uppercase tracking-tight admin-section-title">Admin Authentication</h1>
             <p className="text-xs text-text-primary/50 max-w-xs">
-              This area is restricted. Please enter the administration password to access the panel.
+              This area is restricted. Please enter the password to access the panel.
             </p>
           </div>
 
-          <form onSubmit={handleAdminAuthSubmit} className="space-y-4">
+          <div className="relative flex rounded-xl border border-border bg-bg-primary/60 p-1">
+            {([
+              { id: "admin", label: "Admin", desc: "Full access" },
+              { id: "partner", label: "Partner", desc: "Limited access" },
+            ] as const).map((m) => {
+              const isActive = loginMode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    setLoginMode(m.id);
+                    setAdminAuthError("");
+                  }}
+                  className={`flex-1 px-4 py-2.5 rounded-lg text-center transition-all duration-200 cursor-pointer ${isActive
+                    ? "bg-gradient-to-r from-accent to-accent-hover text-bg-primary shadow-lg shadow-accent/30 scale-[1.02]"
+                    : "text-text-primary/60 hover:text-text-primary hover:bg-white/5"
+                    }`}
+                >
+                  <span className="block text-sm font-bold">{m.label}</span>
+                  <span className={`block text-[10px] font-semibold uppercase tracking-wider ${isActive ? "text-bg-primary/70" : "text-text-primary/30"}`}>
+                    {m.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <form onSubmit={handleAdminAuthSubmit} className="relative space-y-4">
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-text-primary/75">
-                Admin Password
+                {loginMode === "partner" ? "Partner Password" : "Admin Password"}
               </label>
               <input
                 type="password"
                 placeholder="Enter password..."
-                value={adminPasswordInput}
-                onChange={(e) => setAdminPasswordInput(e.target.value)}
-                className="w-full bg-bg-primary border border-border rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors font-semibold"
+                value={loginMode === "partner" ? partnerPasswordInput : adminPasswordInput}
+                onChange={(e) =>
+                  loginMode === "partner"
+                    ? setPartnerPasswordInput(e.target.value)
+                    : setAdminPasswordInput(e.target.value)
+                }
+                className="w-full bg-bg-primary/80 border border-border rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all font-semibold"
                 required
                 disabled={isVerifyingAdmin}
                 autoFocus
@@ -597,12 +813,12 @@ export default function AdminDashboard() {
               </p>
             )}
 
-            <Button type="submit" fullWidth disabled={isVerifyingAdmin} className="py-3">
-              {isVerifyingAdmin ? "Verifying..." : "Access Panel"}
+            <Button type="submit" fullWidth disabled={isVerifyingAdmin} className="py-3 admin-btn-primary">
+              {isVerifyingAdmin ? "Verifying..." : loginMode === "partner" ? "Access Partner Panel" : "Access Panel"}
             </Button>
           </form>
 
-          <div className="pt-2 text-center">
+          <div className="relative pt-2 text-center">
             <Link
               href="/"
               className="text-xs font-bold text-text-primary/40 hover:text-accent transition-colors uppercase tracking-wider"
@@ -615,28 +831,107 @@ export default function AdminDashboard() {
     );
   }
 
+  const navItems = [
+    {
+      id: "overview",
+      label: "Overview",
+      icon: <LayoutDashboard className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "tournaments",
+      label: "Tournaments",
+      icon: <Trophy className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "users",
+      label: "Users",
+      icon: <Users className="w-5 h-5 shrink-0" />,
+      partnerAccess: true,
+    },
+    {
+      id: "registrations",
+      label: "Registrations",
+      icon: <FileText className="w-5 h-5 shrink-0" />,
+      partnerAccess: true,
+    },
+    {
+      id: "groups",
+      label: "Groups",
+      icon: <LayoutGrid className="w-5 h-5 shrink-0" />,
+      partnerAccess: true,
+    },
+    {
+      id: "matches",
+      label: "Matches",
+      icon: <Calendar className="w-5 h-5 shrink-0" />,
+      partnerAccess: true,
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+      icon: <MessageSquare className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "leaderboards",
+      label: "Leaderboards",
+      icon: <BarChart3 className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "wallet",
+      label: "Wallet",
+      icon: <Wallet className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "shop-orders",
+      label: "Shop Orders",
+      icon: <ShoppingBag className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
+      id: "settings",
+      label: "Settings",
+      icon: <Settings className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+  ].filter((tab) => adminRole === "admin" || tab.partnerAccess);
+
+  const bottomBarIds =
+    adminRole === "partner"
+      ? ["users", "registrations", "groups", "matches"]
+      : ["overview", "tournaments", "registrations", "matches", "groups"];
+
+  const bottomBarItems = bottomBarIds
+    .map((id) => navItems.find((tab) => tab.id === id))
+    .filter((tab): tab is (typeof navItems)[number] => Boolean(tab));
+
   return (
-    <div className="flex h-screen bg-bg-primary text-text-primary overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-dvh bg-bg-primary text-text-primary overflow-hidden admin-shell">
       {/* Sidebar */}
       <aside
-        className={`bg-bg-secondary border-r border-border flex flex-col justify-between shrink-0 transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"
+        className={`admin-sidebar border-r border-border flex-col justify-between shrink-0 transition-all duration-300 hidden lg:flex ${isSidebarCollapsed ? "w-20" : "w-64"
           }`}
       >
         <div className="flex flex-col">
           {/* Logo / Branding */}
-          <div className="p-4 border-b border-border flex items-center gap-3 overflow-hidden h-20 shrink-0">
+          <div className="p-4 border-b border-border flex items-center gap-3 overflow-hidden h-20 shrink-0 relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-accent/10 to-transparent opacity-60" />
             <img
               src="/images/logo.png"
               alt="Logo"
-              className="w-10 h-10 object-contain shrink-0"
+              className="w-10 h-10 object-contain shrink-0 relative"
             />
             {!isSidebarCollapsed && (
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 relative">
                 <h1 className="text-md font-bold tracking-wider text-text-primary uppercase truncate">
                   EPIX Esports
                 </h1>
-                <span className="text-[10px] text-text-primary/50 uppercase tracking-widest font-semibold">
-                  Admin Portal
+                <span className="text-[10px] text-accent/70 uppercase tracking-widest font-semibold">
+                  {adminRole === "partner" ? "Partner Portal" : "Admin Portal"}
                 </span>
               </div>
             )}
@@ -644,55 +939,14 @@ export default function AdminDashboard() {
 
           {/* Navigation Links */}
           <nav className="p-4 space-y-1.5">
-            {[
-              {
-                id: "tournaments",
-                label: "Tournaments",
-                icon: <Trophy className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "users",
-                label: "Users",
-                icon: <Users className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "registrations",
-                label: "Registrations",
-                icon: <FileText className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "groups",
-                label: "Groups",
-                icon: <LayoutGrid className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "matches",
-                label: "Matches",
-                icon: <Calendar className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "reviews",
-                label: "Reviews",
-                icon: <MessageSquare className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "leaderboards",
-                label: "Leaderboards",
-                icon: <BarChart3 className="w-5 h-5 shrink-0" />,
-              },
-              {
-                id: "settings",
-                label: "Settings",
-                icon: <Settings className="w-5 h-5 shrink-0" />,
-              },
-            ].map((tab) => (
+            {navItems.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as ActiveTab)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${isSidebarCollapsed ? "justify-center" : ""
+                className={`admin-nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${isSidebarCollapsed ? "justify-center" : ""
                   } ${activeTab === tab.id
-                    ? "bg-accent text-bg-primary shadow-lg shadow-accent/20"
-                    : "text-text-primary/70 hover:bg-white/5 hover:text-text-primary"
+                    ? "admin-nav-item-active"
+                    : "text-text-primary/70 hover:text-text-primary"
                   }`}
                 title={isSidebarCollapsed ? tab.label : undefined}
               >
@@ -707,7 +961,7 @@ export default function AdminDashboard() {
         <div className="p-4 border-t border-border space-y-2">
           <Link
             href="/"
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white/[0.02] text-xs font-semibold text-text-primary/70 hover:border-accent hover:text-accent transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white/[0.02] text-xs font-semibold text-text-primary/70 hover:border-accent hover:text-accent transition-all hover:bg-accent/5"
             title={isSidebarCollapsed ? "Back to Site" : undefined}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -717,7 +971,7 @@ export default function AdminDashboard() {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/50 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all cursor-pointer"
             title={isSidebarCollapsed ? "Logout" : undefined}
           >
             <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -728,15 +982,148 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
+      {/* Mobile Top Bar */}
+      <header className="lg:hidden shrink-0 h-16 border-b border-border flex items-center justify-between px-4 bg-bg-secondary/80 backdrop-blur-xl relative z-30">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={() => setIsMobileNavOpen(true)}
+            className="p-2 rounded-lg border border-border bg-white/[0.02] hover:bg-white/5 hover:border-accent text-text-primary transition-all cursor-pointer flex items-center justify-center shrink-0"
+            title="Open Menu"
+            aria-label="Open Menu"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-lg font-black capitalize admin-section-title truncate">
+              {activeTab === "overview" ? "Website Overview" : `${activeTab} Management`}
+            </h2>
+            <span className="text-[10px] text-text-primary/40 flex items-center gap-1">
+              <span className="text-accent font-semibold">Dashboard</span>
+              <span className="text-text-primary/25">/</span>
+              <span className="capitalize truncate">{activeTab}</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 border border-accent/25 text-[10px] font-bold text-accent shrink-0">
+          <span className="admin-status-dot bg-accent" />
+          {adminRole === "partner" ? "Partner" : "Admin"}
+        </div>
+      </header>
+
+      {/* Mobile Navigation Drawer */}
+      <div
+        className={`lg:hidden fixed inset-0 z-50 transition-all duration-300 ${isMobileNavOpen ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+      >
+        <div
+          onClick={() => setIsMobileNavOpen(false)}
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isMobileNavOpen ? "opacity-100" : "opacity-0"
+            }`}
+        />
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-72 max-w-[85vw] bg-bg-secondary border-r border-border flex flex-col transition-transform duration-300 ${isMobileNavOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+        >
+          <div className="p-4 border-b border-border flex items-center gap-3 h-16 shrink-0 relative">
+            <div className="absolute inset-0 bg-gradient-to-b from-accent/10 to-transparent opacity-60" />
+            <img src="/images/logo.png" alt="Logo" className="w-9 h-9 object-contain shrink-0 relative" />
+            <div className="flex flex-col min-w-0 relative flex-1">
+              <h1 className="text-sm font-bold tracking-wider text-text-primary uppercase truncate">EPIX Esports</h1>
+              <span className="text-[10px] text-accent/70 uppercase tracking-widest font-semibold">
+                {adminRole === "partner" ? "Partner Portal" : "Admin Portal"}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsMobileNavOpen(false)}
+              className="p-1.5 rounded-lg border border-border bg-white/[0.02] hover:bg-white/5 hover:border-accent text-text-primary transition-all cursor-pointer relative"
+              aria-label="Close Menu"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1.5 modal-scrollbar">
+            {navItems.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id as ActiveTab);
+                  setIsMobileNavOpen(false);
+                }}
+                className={`admin-nav-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${activeTab === tab.id
+                  ? "admin-nav-item-active"
+                  : "text-text-primary/70 hover:text-text-primary"
+                  }`}
+              >
+                {tab.icon}
+                <span className="truncate">{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-border space-y-2">
+            <Link
+              href="/"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border bg-white/[0.02] text-xs font-semibold text-text-primary/70 hover:border-accent hover:text-accent transition-all hover:bg-accent/5"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span>Back to Site</span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-red-500/30 bg-red-500/5 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:shadow-lg hover:shadow-red-500/10 transition-all cursor-pointer"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-bg-secondary/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${bottomBarItems.length}, minmax(0, 1fr))` }}>
+          {bottomBarItems.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as ActiveTab)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 px-1 transition-all duration-200 cursor-pointer ${isActive ? "text-accent" : "text-text-primary/50 hover:text-text-primary"
+                  }`}
+              >
+                <span className={`flex items-center justify-center w-10 h-7 rounded-full transition-all duration-200 ${isActive ? "bg-accent/15" : ""}`}>
+                  {tab.icon}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wide leading-none truncate max-w-full">
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-bg-secondary/40 backdrop-blur-md">
+        {/* Top Header (desktop) */}
+        <header className="h-20 border-b border-border items-center justify-between px-8 bg-bg-secondary/60 backdrop-blur-xl relative hidden lg:flex">
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
           <div className="flex items-center gap-4">
             {/* Toggle Sidebar Button */}
             <button
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              className="p-2 rounded-lg border border-border bg-white/[0.02] hover:bg-white/5 hover:border-accent text-text-primary transition-all cursor-pointer flex items-center justify-center"
+              className="p-2 rounded-lg border border-border bg-white/[0.02] hover:bg-white/5 hover:border-accent text-text-primary transition-all cursor-pointer flex items-center justify-center hover:shadow-lg hover:shadow-accent/10"
               title="Toggle Sidebar"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -745,28 +1132,355 @@ export default function AdminDashboard() {
             </button>
 
             <div className="flex flex-col">
-              <h2 className="text-xl font-bold capitalize text-text-primary">
-                {activeTab}
+              <h2 className="text-xl font-black capitalize admin-section-title">
+                {activeTab === "overview" ? "Website Overview" : `${activeTab} Management`}
               </h2>
-              <span className="text-xs text-text-primary/40 mt-0.5">
-                Dashboard / {activeTab}
+              <span className="text-xs text-text-primary/40 mt-0.5 flex items-center gap-1.5">
+                <span className="text-accent font-semibold">Dashboard</span>
+                <span className="text-text-primary/25">/</span>
+                <span className="capitalize">{activeTab}</span>
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-xs font-bold text-accent">
-              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-              Live Server
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/25 text-xs font-bold text-accent shadow-lg shadow-accent/10">
+              <span className="admin-status-dot bg-accent" />
+              {adminRole === "partner" ? "Partner Access" : "Full Admin Access"}
             </div>
           </div>
         </header>
 
         {/* Content Pane */}
-        <div className="flex-1 overflow-y-auto p-8 modal-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-28 lg:pb-8 modal-scrollbar">
           {isLoading ? (
             <div className="h-full flex items-center justify-center">
               <div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" />
+            </div>
+          ) : activeTab === "overview" ? (
+            <div className="space-y-8 max-w-7xl mx-auto animate-fade-in-up">
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                {[
+                  { label: "Total Players", val: totalPlayers, icon: <Users className="w-5 h-5" />, accent: "text-accent", chip: "from-accent/30 to-accent/5" },
+                  { label: "Total Tournaments", val: totalTournaments, icon: <Trophy className="w-5 h-5" />, accent: "text-accent", chip: "from-accent/30 to-accent/5" },
+                  { label: "Total Registrations", val: registrations.length, icon: <FileText className="w-5 h-5" />, accent: "text-accent", chip: "from-accent/30 to-accent/5" },
+                  { label: "Approved Teams", val: approvedRegs, icon: <Users className="w-5 h-5" />, accent: "text-emerald-400", chip: "from-emerald-500/30 to-emerald-500/5" },
+                  { label: "Pending Registrations", val: pendingRegs, icon: <FileText className="w-5 h-5" />, accent: "text-amber-400", chip: "from-amber-500/30 to-amber-500/5" },
+                  { label: "Total Matches", val: totalMatchCount, icon: <Calendar className="w-5 h-5" />, accent: "text-accent", chip: "from-accent/30 to-accent/5" },
+                  { label: "Reviews", val: reviews.length, icon: <Star className="w-5 h-5" />, accent: "text-amber-400", chip: "from-amber-500/30 to-amber-500/5" },
+                  { label: "Avg Rating", val: avgRating, icon: <Star className="w-5 h-5" />, accent: "text-amber-400", chip: "from-amber-500/30 to-amber-500/5" },
+                ].map((k, i) => (
+                  <div key={i} className="admin-card admin-kpi p-5 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider">
+                        {k.label}
+                      </span>
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br ${k.chip} border border-accent/20 ${k.accent}`}>
+                        {k.icon}
+                      </div>
+                    </div>
+                    <span className={`text-3xl font-black ${k.accent}`}>
+                      {k.val.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Slot fill + finances */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="lg:col-span-2 admin-card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider">Tournament Slots Filled</span>
+                    <span className="text-sm font-black text-accent">{filledSlots.toLocaleString()} / {totalSlots.toLocaleString()}</span>
+                  </div>
+                  <div className="h-4 rounded-full bg-bg-primary/60 overflow-hidden border border-border/40">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-accent to-emerald-500 transition-all duration-700 relative"
+                      style={{ width: `${fillRate}%` }}
+                    >
+                      <div className="absolute inset-0 bg-white/10" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-right text-xs font-bold text-text-primary/40">
+                    {fillRate}% capacity
+                  </div>
+                </div>
+                <div className="admin-card admin-kpi p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="admin-kpi-icon flex h-8 w-8 items-center justify-center rounded-lg text-accent">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider">Total Prize Pool</span>
+                  </div>
+                  <span className="text-2xl font-black">PKR {totalPrizePool.toLocaleString()}</span>
+                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-text-primary/50">
+                    <span>Entry fees collected</span>
+                    <span className="font-bold text-emerald-400">PKR {totalEntryFees.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="admin-card admin-kpi p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="admin-kpi-icon flex h-8 w-8 items-center justify-center rounded-lg text-accent">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider">Tournaments Live</span>
+                  </div>
+                  <span className="text-2xl font-black">{regOpenCount + ongoingCount}</span>
+                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-text-primary/50">
+                    <span>Open for registration</span>
+                    <span className="font-bold text-emerald-400">{regOpenCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status breakdowns */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {[
+                  { title: "Tournament Status", list: tournamentStatuses },
+                  { title: "Registration Status", list: registrationStatuses },
+                  { title: "Review Status", list: reviewStatuses },
+                ].map((sec, i) => {
+                  const maxVal = Math.max(1, ...sec.list.map((s) => s.val));
+                  return (
+                    <div key={i} className="admin-card admin-kpi p-5">
+                      <h4 className="text-xs font-bold text-text-primary/50 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="h-1 w-1 rounded-full bg-accent" />
+                        {sec.title}
+                      </h4>
+                      <div className="space-y-3">
+                        {sec.list.map((s) => (
+                          <div key={s.label}>
+                            <div className="flex items-center justify-between text-sm mb-1">
+                              <span className="text-text-primary/70 font-medium">{s.label}</span>
+                              <span className="font-bold text-text-primary">{s.val}</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-bg-primary/60 overflow-hidden border border-border/30">
+                              <div
+                                className={`h-full rounded-full ${s.color} transition-all duration-700`}
+                                style={{ width: `${(s.val / maxVal) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Tournaments by fill + leaderboard */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="admin-card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent">
+                    <h4 className="text-sm font-bold admin-section-title">Tournament Registration Fill</h4>
+                  </div>
+                  {teamsPerTournament.length > 0 ? (
+                    <div className="p-5 space-y-4 max-h-80 overflow-y-auto modal-scrollbar">
+                      {teamsPerTournament.map((t) => (
+                        <div key={t.id}>
+                          <div className="flex items-center justify-between text-xs mb-1 gap-3">
+                            <span className="font-semibold text-text-primary/80 truncate">{t.title}</span>
+                            <span className="text-text-primary/40 shrink-0">
+                              {t.registeredTeams}/{t.maxTeams} teams
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-bg-primary/60 overflow-hidden border border-border/30">
+                            <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent-hover transition-all duration-700" style={{ width: `${t.pct}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState message="No tournaments found." />
+                  )}
+                </div>
+
+                <div className="admin-card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent">
+                    <h4 className="text-sm font-bold admin-section-title">Top Teams by Points</h4>
+                  </div>
+                  {topTeams.length > 0 ? (
+                    <div className="p-4 space-y-2">
+                      {topTeams.map((r, idx) => {
+                        const tourn = tournaments.find((t) => t.id === r.tournamentId);
+                        return (
+                          <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-border/40 hover:border-accent/30 transition-all">
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${idx === 0 ? "bg-gradient-to-br from-amber-400/30 to-amber-500/10 text-amber-400 border border-amber-400/30" : "bg-accent/10 text-accent border border-accent/20"}`}>
+                              {idx + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-text-primary truncate">{r.teamName || "Unnamed team"}</span>
+                              <span className="block text-[11px] text-text-primary/40 truncate">{tourn?.title || "Tournament"}</span>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="block text-sm font-extrabold text-accent">{r.totalPoints} pts</span>
+                              <span className="block text-[11px] text-text-primary/40">{r.kills || 0} kills</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <EmptyState message="No ranked teams yet." />
+                  )}
+                </div>
+              </div>
+
+              {/* Recent activity */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="admin-card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent">
+                    <h4 className="text-sm font-bold admin-section-title">Latest Registrations</h4>
+                  </div>
+                  {recentRegs.length > 0 ? (
+                    <div className="p-4 space-y-2">
+                      {recentRegs.map((r) => {
+                        const tourn = tournaments.find((t) => t.id === r.tournamentId);
+                        return (
+                          <div key={r.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-all">
+                            <div className="min-w-0">
+                              <span className="block text-sm font-bold text-text-primary truncate">{r.teamName || "Unnamed team"}</span>
+                              <span className="block text-[11px] text-text-primary/40 truncate">{tourn?.title || "Tournament"} · {new Date(r.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                              r.status === "approved" ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" :
+                              r.status === "rejected" ? "bg-red-500/10 border border-red-500/30 text-red-400" :
+                              "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                            }`}>
+                              {r.status}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <EmptyState message="No registrations yet." />
+                  )}
+                </div>
+
+                <div className="admin-card overflow-hidden">
+                  <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent">
+                    <h4 className="text-sm font-bold admin-section-title">Latest Reviews</h4>
+                  </div>
+                  {recentReviews.length > 0 ? (
+                    <div className="p-4 space-y-2">
+                      {recentReviews.map((r) => (
+                        <div key={r.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] transition-all">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-text-primary truncate">{r.name}</span>
+                              <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
+                                {Array.from({ length: 5 }, (_, i) => (
+                                  <svg key={i} xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill={i < r.rating ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                  </svg>
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-xs text-text-primary/60 truncate mt-0.5">{r.text}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${
+                            r.status === "approved" ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" :
+                            r.status === "rejected" ? "bg-red-500/10 border border-red-500/30 text-red-400" :
+                            "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                          }`}>
+                            {r.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState message="No reviews yet." />
+                  )}
+                </div>
+              </div>
+
+              {/* Database Storage */}
+              <div className="admin-card overflow-hidden">
+                <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="admin-kpi-icon flex h-8 w-8 items-center justify-center rounded-lg text-accent">
+                      <Database className="w-4 h-4" />
+                    </div>
+                    <h4 className="text-sm font-bold admin-section-title">Database Storage</h4>
+                  </div>
+                  <span className="text-xs font-bold text-text-primary/40 uppercase tracking-wider">
+                    {dbStats ? dbStats.database : "MongoDB"}
+                  </span>
+                </div>
+                <div className="p-5 space-y-5">
+                  {!dbStats ? (
+                    <div className="flex items-center gap-3 text-sm text-text-primary/50 py-4">
+                      <div className="w-4 h-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                      <span>{dbStatsError ? "Unable to load database stats." : "Loading database stats..."}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { label: "Total Documents", val: dbStats.totalDocuments.toLocaleString(), accent: "text-text-primary" },
+                          { label: "Storage Used", val: formatBytes(dbStats.storageSize), accent: "text-accent" },
+                          { label: "Indexes Size", val: formatBytes(dbStats.indexSize), accent: "text-text-primary" },
+                          { label: "Collections", val: dbStats.collectionsCount.toLocaleString(), accent: "text-emerald-400" },
+                        ].map((b, i) => (
+                          <div key={i} className="p-4 rounded-xl bg-bg-primary/50 border border-border/50 admin-card">
+                            <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider block">
+                              {b.label}
+                            </span>
+                            <span className={`text-xl font-extrabold block mt-1 ${b.accent}`}>{b.val}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="p-4 rounded-xl bg-bg-primary/50 border border-border/50 admin-card">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="font-semibold text-text-primary/60 uppercase tracking-wider">Storage capacity used</span>
+                          <span className="font-bold text-text-primary">{formatBytes(dbStats.storageSize)} of {formatBytes(dbStats.fsTotalSize)}</span>
+                        </div>
+                        <div className="h-3 rounded-full bg-bg-primary/60 overflow-hidden border border-border/40">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-accent to-violet-500 transition-all duration-700"
+                            style={{ width: `${dbStats.fsTotalSize > 0 ? Math.min(100, (dbStats.storageSize / dbStats.fsTotalSize) * 100) : 0}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 text-right text-xs font-bold text-text-primary/40">
+                          {dbStats.fsTotalSize > 0 ? Math.round((dbStats.storageSize / dbStats.fsTotalSize) * 100) : 0}% used
+                        </div>
+                      </div>
+
+                      {dbStats.collections.length > 0 && (
+                        <div className="overflow-x-auto modal-scrollbar admin-table">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="text-[10px] font-bold uppercase tracking-wider text-text-primary/40 border-b border-border">
+                                <th className="text-left py-2 px-2">Collection</th>
+                                <th className="text-right py-2 px-2">Documents</th>
+                                <th className="text-right py-2 px-2">Avg Size</th>
+                                <th className="text-right py-2 px-2">Data Size</th>
+                                <th className="text-right py-2 px-2">Storage</th>
+                                <th className="text-right py-2 px-2">Indexes</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {dbStats.collections.map((c) => (
+                                <tr key={c.name} className="border-b border-border/40 last:border-0 hover:bg-white/[0.02]">
+                                  <td className="py-2.5 px-2 font-semibold text-text-primary">{c.name}</td>
+                                  <td className="py-2.5 px-2 text-right text-text-primary/70">{c.count.toLocaleString()}</td>
+                                  <td className="py-2.5 px-2 text-right text-text-primary/50">{formatBytes(c.avgObjSize)}</td>
+                                  <td className="py-2.5 px-2 text-right text-text-primary/60">{formatBytes(c.dataSize)}</td>
+                                  <td className="py-2.5 px-2 text-right text-accent font-semibold">{formatBytes(c.storageSize)}</td>
+                                  <td className="py-2.5 px-2 text-right text-text-primary/70">{c.totalIndexes}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           ) : activeTab === "tournaments" ? (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in-up">
@@ -780,12 +1494,12 @@ export default function AdminDashboard() {
                 ].map((st, i) => (
                   <div
                     key={i}
-                    className={`p-5 rounded-xl bg-bg-secondary border ${st.border} shadow-md`}
+                    className={`admin-card admin-kpi p-5 ${st.border.includes("accent") ? "border-accent/20" : ""}`}
                   >
                     <span className="text-xs font-semibold text-text-primary/40 uppercase tracking-wider block">
                       {st.label}
                     </span>
-                    <span className="text-3xl font-extrabold block mt-2 text-text-primary">
+                    <span className="text-3xl font-black block mt-2 text-text-primary">
                       {st.val}
                     </span>
                   </div>
@@ -793,9 +1507,9 @@ export default function AdminDashboard() {
               </div>
 
               {/* Tournament Management Controls */}
-              <div className="bg-bg-secondary border border-border rounded-2xl overflow-hidden shadow-xl">
+              <div className="admin-card overflow-hidden">
                 {/* Search / Filter Section */}
-                <div className="p-6 border-b border-border flex flex-col md:flex-row items-center justify-between gap-4 bg-white/[0.01]">
+                <div className="p-6 border-b border-border flex flex-col md:flex-row items-center justify-between gap-4 bg-gradient-to-r from-accent/10 to-transparent">
                   <div className="relative w-full md:w-80">
                     <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-text-primary/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -805,7 +1519,7 @@ export default function AdminDashboard() {
                       placeholder="Search tournament title..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-bg-primary/50 border border-border hover:border-accent/40 focus:border-accent rounded-lg pl-10 pr-4 py-2 text-sm text-text-primary placeholder:text-text-primary/30 outline-none transition-colors"
+                      className="w-full bg-bg-primary/50 border border-border hover:border-accent/40 focus:border-accent focus:ring-2 focus:ring-accent/20 rounded-lg pl-10 pr-4 py-2 text-sm text-text-primary placeholder:text-text-primary/30 outline-none transition-all"
                     />
                   </div>
 
@@ -822,7 +1536,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Data Table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto admin-table">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
@@ -839,7 +1553,7 @@ export default function AdminDashboard() {
                         filteredTournaments.map((tournament) => (
                           <tr
                             key={tournament.id}
-                            className="hover:bg-white/[0.01] transition-colors"
+                            className="hover:bg-white/[0.02] transition-colors"
                           >
                             <td className="px-6 py-4">
                               <div className="flex flex-col">
@@ -855,13 +1569,14 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-6 py-4">
                               <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${tournament.status === "ongoing"
-                                    ? "bg-accent/15 text-accent"
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${tournament.status === "ongoing"
+                                    ? "bg-accent/15 text-accent border border-accent/20"
                                     : tournament.status === "upcoming"
-                                      ? "bg-accent/15 text-accent"
-                                      : "bg-white/10 text-text-primary/40"
+                                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                      : "bg-white/10 text-text-primary/40 border border-border/40"
                                   }`}
                               >
+                                <span className={`h-1.5 w-1.5 rounded-full ${tournament.status === "ongoing" ? "bg-accent" : tournament.status === "upcoming" ? "bg-emerald-400" : "bg-text-primary/30"}`} />
                                 {tournament.status}
                               </span>
                             </td>
@@ -923,31 +1638,31 @@ export default function AdminDashboard() {
             </div>
           ) : activeTab === "users" ? (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in-up">
-              <div className="rounded-2xl border border-border bg-bg-secondary overflow-hidden">
-                <div className="p-6 border-b border-border bg-white/[0.01] flex items-center justify-between">
+              <div className="admin-card overflow-hidden">
+                <div className="p-6 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold text-text-primary">Registered Players</h3>
+                    <h3 className="font-bold admin-section-title">Registered Players</h3>
                     <p className="text-xs text-text-primary/40 mt-1">Manage and audit registered player accounts</p>
                   </div>
-                  <span className="px-3 py-1 rounded bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
+                  <span className="px-3 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
                     {users.length} Total
                   </span>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto admin-table">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
                         <th className="px-6 py-4">Player UID</th>
                         <th className="px-6 py-4">In-Game Name</th>
                         <th className="px-6 py-4">WhatsApp Contact</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
+                        <th className="px-6 py-4 text-right">{adminRole === "admin" ? "Actions" : "Access"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/60 text-sm">
                       {users.length > 0 ? (
                         users.map((user) => (
-                          <tr key={user.uid} className="hover:bg-white/[0.01] transition-colors">
+                          <tr key={user.uid} className="hover:bg-white/[0.02] transition-colors">
                             <td className="px-6 py-4 font-mono text-accent">
                               {user.uid}
                             </td>
@@ -958,12 +1673,18 @@ export default function AdminDashboard() {
                               {user.whatsapp}
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <button
-                                onClick={() => handleDeleteUser(user.uid, user.inGameName)}
-                                className="px-3 py-1.5 rounded bg-white/5 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-all cursor-pointer"
-                              >
-                                Delete Account
-                              </button>
+                              {adminRole === "admin" ? (
+                                <button
+                                  onClick={() => handleDeleteUser(user.uid, user.inGameName)}
+                                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-all cursor-pointer"
+                                >
+                                  Delete Account
+                                </button>
+                              ) : (
+                                <span className="px-3 py-1.5 rounded bg-white/5 border border-border text-xs font-semibold text-text-primary/40">
+                                  Read Only
+                                </span>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1017,20 +1738,20 @@ export default function AdminDashboard() {
               </div>
 
               {activeRegTournamentId && openOrOngoingTournaments.some(t => t.id === activeRegTournamentId) && (
-                <div className="rounded-2xl border border-border bg-bg-secondary overflow-hidden">
-                  <div className="p-6 border-b border-border bg-white/[0.01] flex items-center justify-between">
+                <div className="admin-card overflow-hidden">
+                  <div className="p-6 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-text-primary">Registrations List</h3>
+                      <h3 className="font-bold admin-section-title">Registrations List</h3>
                       <p className="text-xs text-text-primary/40 mt-1">
                         Viewing registered teams and solo players for the selected tournament
                       </p>
                     </div>
-                    <span className="px-3 py-1 rounded bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
+                    <span className="px-3 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
                       {selectedTournRegistrations.length} Teams/Players
                     </span>
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto admin-table">
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
@@ -1046,11 +1767,31 @@ export default function AdminDashboard() {
                       <tbody className="divide-y divide-border/60 text-sm">
                         {selectedTournRegistrations.length > 0 ? (
                           selectedTournRegistrations.map((reg) => (
-                            <tr key={reg.id} className="hover:bg-white/[0.01] transition-colors">
+                            <tr key={reg.id} className="hover:bg-white/[0.02] transition-colors">
                               <td className="px-6 py-4 font-semibold text-text-primary">
-                                <div className="flex flex-col">
-                                  <span>{reg.teamName || "Solo Player"}</span>
-                                  <span className="text-[11px] text-accent font-semibold mt-0.5 uppercase tracking-wider">{reg.group}</span>
+                                <div className="flex items-center gap-3">
+                                  {reg.teamLogo && (
+                                    <button
+                                      onClick={() => setExpandedImage({ src: reg.teamLogo!, title: "Team Logo" })}
+                                      className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-accent/25 bg-white/5 cursor-pointer hover:scale-105 hover:border-accent transition-all group flex items-center justify-center"
+                                      title="View team logo"
+                                    >
+                                      <img
+                                        src={reg.teamLogo}
+                                        alt="Team logo"
+                                        className="h-full w-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                                          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                                        </svg>
+                                      </div>
+                                    </button>
+                                  )}
+                                  <div className="flex flex-col">
+                                    <span>{reg.teamName || "Solo Player"}</span>
+                                    <span className="text-[11px] text-accent font-semibold mt-0.5 uppercase tracking-wider">{reg.group}</span>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-6 py-4 text-text-primary/70 font-mono">
@@ -1060,6 +1801,23 @@ export default function AdminDashboard() {
                                 <div className="space-y-1.5">
                                   {reg.members.map((m, idx) => (
                                     <div key={m.uid} className="flex items-center gap-2 text-xs">
+                                      {m.picture ? (
+                                        <button
+                                          onClick={() => setExpandedImage({ src: m.picture!, title: `Player ${idx + 1} Picture` })}
+                                          className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-accent/25 bg-white/5 cursor-pointer hover:scale-110 hover:border-accent transition-all group relative flex items-center justify-center"
+                                          title="View player picture"
+                                        >
+                                          <img
+                                            src={m.picture}
+                                            alt={`Player ${idx + 1} picture`}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </button>
+                                      ) : (
+                                        <span className="h-7 w-7 shrink-0 rounded-full border border-dashed border-border/40 bg-white/[0.02] flex items-center justify-center text-[8px] font-bold text-text-primary/30">
+                                          P{idx + 1}
+                                        </span>
+                                      )}
                                       <span className="text-accent font-semibold">P{idx + 1}:</span>
                                       <span className="text-text-primary">{m.inGameName}</span>
                                       <span className="text-text-primary/40 font-mono">({m.uid})</span>
@@ -1070,7 +1828,7 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4">
                                 {reg.receiptImage ? (
                                   <button
-                                    onClick={() => setExpandedReceipt(reg.receiptImage)}
+                                    onClick={() => setExpandedImage({ src: reg.receiptImage, title: "Payment Receipt" })}
                                     className="relative h-12 w-20 overflow-hidden rounded border border-border bg-white/5 cursor-pointer hover:scale-105 hover:border-accent transition-all group flex items-center justify-center"
                                   >
                                     <img
@@ -1094,14 +1852,15 @@ export default function AdminDashboard() {
                               <td className="px-6 py-4">
                                 <span
                                   className={cn(
-                                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider",
+                                    "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border",
                                     reg.status === "approved"
-                                      ? "bg-green-500/15 text-green-400"
+                                      ? "bg-green-500/15 text-green-400 border-green-500/25"
                                       : reg.status === "rejected"
-                                        ? "bg-red-500/15 text-red-400"
-                                        : "bg-yellow-500/15 text-yellow-400"
+                                        ? "bg-red-500/15 text-red-400 border-red-500/25"
+                                        : "bg-yellow-500/15 text-yellow-400 border-yellow-500/25"
                                   )}
                                 >
+                                  <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "approved" ? "bg-green-400" : reg.status === "rejected" ? "bg-red-400" : "bg-yellow-400"}`} />
                                   {reg.status || "pending"}
                                 </span>
                               </td>
@@ -1209,16 +1968,19 @@ export default function AdminDashboard() {
                     return (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {groupNames.map((gName) => (
-                          <div key={gName} className="rounded-2xl border border-border bg-bg-secondary overflow-hidden shadow-md">
-                            <div className="p-5 border-b border-border bg-white/[0.01] flex items-center justify-between">
-                              <h4 className="font-bold text-text-primary uppercase tracking-wide">{gName}</h4>
-                              <span className="px-2.5 py-0.5 rounded bg-accent/10 border border-accent/20 text-xs font-semibold text-accent">
+                          <div key={gName} className="admin-card overflow-hidden">
+                            <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between">
+                              <h4 className="font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgba(255,184,0,0.6)]" />
+                                {gName}
+                              </h4>
+                              <span className="px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-xs font-semibold text-accent">
                                 {grouped[gName].length} Teams
                               </span>
                             </div>
                             <div className="divide-y divide-border/60">
                               {grouped[gName].map((reg) => (
-                                <div key={reg.id} className="p-4 flex flex-col gap-3 hover:bg-white/[0.01] transition-colors">
+                                <div key={reg.id} className="p-4 flex flex-col gap-3 hover:bg-white/[0.02] transition-colors">
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-sm text-text-primary">
                                       {reg.teamName || "Solo Player"}
@@ -1226,19 +1988,20 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-2">
                                       <span
                                         className={cn(
-                                          "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                                           reg.status === "approved"
-                                            ? "bg-green-500/15 text-green-400"
+                                            ? "bg-green-500/15 text-green-400 border-green-500/25"
                                             : reg.status === "rejected"
-                                              ? "bg-red-500/15 text-red-400"
-                                              : "bg-yellow-500/15 text-yellow-400"
+                                              ? "bg-red-500/15 text-red-400 border-red-500/25"
+                                              : "bg-yellow-500/15 text-yellow-400 border-yellow-500/25"
                                         )}
                                       >
+                                        <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "approved" ? "bg-green-400" : reg.status === "rejected" ? "bg-red-400" : "bg-yellow-400"}`} />
                                         {reg.status || "pending"}
                                       </span>
                                       <button
                                         onClick={() => handleEliminateTeam(reg.id, reg.teamName || "Solo Player")}
-                                        className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-[10px] font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+                                        className="px-2 py-0.5 rounded-lg bg-red-500/10 border border-red-500/30 text-[10px] font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
                                       >
                                         Eliminate
                                       </button>
@@ -1337,14 +2100,17 @@ export default function AdminDashboard() {
                           });
 
                           return (
-                            <div key={gName} className="rounded-2xl border border-border bg-bg-secondary overflow-hidden shadow-md">
-                              <div className="p-5 border-b border-border bg-white/[0.01] flex items-center justify-between">
-                                <h4 className="font-bold text-text-primary uppercase tracking-wide">{gName}</h4>
-                                <span className="px-2.5 py-0.5 rounded bg-accent/10 border border-accent/20 text-xs font-semibold text-accent">
+                            <div key={gName} className="admin-card overflow-hidden">
+                              <div className="p-5 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between">
+                                <h4 className="font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
+                                  <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_rgba(255,184,0,0.6)]" />
+                                  {gName}
+                                </h4>
+                                <span className="px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-xs font-semibold text-accent">
                                   {sortedRegs.length} Teams
                                 </span>
                               </div>
-                              <div className="overflow-x-auto">
+                              <div className="overflow-x-auto admin-table">
                                 <table className="w-full text-left border-collapse">
                                   <thead>
                                     <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
@@ -1578,11 +2344,11 @@ export default function AdminDashboard() {
                         {matches.length > 0 ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {matches.map((m) => (
-                              <div key={m.id} className="bg-bg-secondary border border-border rounded-2xl p-5 shadow-md flex flex-col justify-between relative group">
+                              <div key={m.id} className="admin-card admin-kpi p-5 flex flex-col justify-between relative group">
                                 <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
+                                  <div className="flex items-center justify-between gap-2">
                                     <span className="font-extrabold text-text-primary text-base">{m.title}</span>
-                                    <span className="px-2.5 py-0.5 rounded bg-accent/15 border border-accent/25 text-[10px] font-bold text-accent uppercase tracking-wider">{m.map}</span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-accent/15 border border-accent/25 text-[10px] font-bold text-accent uppercase tracking-wider shrink-0">{m.map}</span>
                                   </div>
                                   <div className="space-y-1 text-xs text-text-primary/60">
                                     <div>Date: <span className="font-semibold text-text-primary">{m.date}</span></div>
@@ -1595,13 +2361,13 @@ export default function AdminDashboard() {
                                 <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
                                   <button
                                     onClick={() => handleEditMatchClick(m)}
-                                    className="px-2.5 py-1 rounded bg-white/5 border border-border text-xs font-semibold text-text-primary/70 hover:text-text-primary hover:bg-white/10 transition-all cursor-pointer"
+                                    className="px-2.5 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/70 hover:text-text-primary hover:bg-white/10 transition-all cursor-pointer"
                                   >
                                     Edit Match
                                   </button>
                                   <button
                                     onClick={() => handleDeleteMatch(m.id, m.title)}
-                                    className="px-2.5 py-1 rounded bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+                                    className="px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
                                   >
                                     Delete Match
                                   </button>
@@ -1658,11 +2424,11 @@ export default function AdminDashboard() {
               {reviews.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {reviews.map((review) => (
-                    <div key={review.id} className="bg-bg-secondary border border-border rounded-2xl p-5 shadow-md flex flex-col justify-between relative group">
+                    <div key={review.id} className="admin-card admin-kpi p-5 flex flex-col justify-between relative group">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent text-sm font-extrabold">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent/30 to-accent/10 text-accent text-sm font-black border border-accent/25">
                               {(review.name || "E").slice(0, 1).toUpperCase()}
                             </div>
                             <div className="min-w-0">
@@ -1672,12 +2438,12 @@ export default function AdminDashboard() {
                           </div>
                           <span
                             className={cn(
-                              "px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0",
+                              "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 border",
                               review.status === "approved"
-                                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400"
+                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                                 : review.status === "rejected"
-                                ? "bg-red-500/10 border border-red-500/30 text-red-400"
-                                : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                                ? "bg-red-500/10 border-red-500/30 text-red-400"
+                                : "bg-amber-500/10 border-amber-500/30 text-amber-400"
                             )}
                           >
                             {review.status}
@@ -1728,9 +2494,10 @@ export default function AdminDashboard() {
               )}
             </div>
           ) : activeTab === "settings" ? (
-            <div className="max-w-xl animate-fade-in-up space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-text-primary">Admin Password Settings</h3>
+            <>
+              <div className="max-w-xl animate-fade-in-up space-y-6">
+                <div className="admin-card admin-kpi p-6">
+                  <h3 className="font-bold admin-section-title">Admin Password Settings</h3>
                 <p className="text-xs text-text-primary/40 mt-1">
                   Update the credentials used to access the administrator panel.
                 </p>
@@ -1759,7 +2526,7 @@ export default function AdminDashboard() {
                       placeholder="Enter current password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
 
@@ -1773,7 +2540,7 @@ export default function AdminDashboard() {
                       placeholder="Enter new password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
 
@@ -1787,7 +2554,7 @@ export default function AdminDashboard() {
                       placeholder="Confirm new password"
                       value={confirmNewPassword}
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     />
                   </div>
 
@@ -1795,7 +2562,7 @@ export default function AdminDashboard() {
                     <Button
                       type="submit"
                       disabled={isChangingPassword}
-                      className="w-full py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                      className="w-full py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 admin-btn-primary"
                     >
                       {isChangingPassword ? (
                         <>
@@ -1809,9 +2576,96 @@ export default function AdminDashboard() {
                   </div>
                 </form>
               </div>
-            ) : (
+
+              <div className="pt-6 border-t border-border/40">
+                <div>
+                  <h3 className="text-lg font-bold admin-section-title">Partner Password Settings</h3>
+                  <p className="text-xs text-text-primary/40 mt-1">
+                    Update the credentials used by your partner to access the panel with limited access (registrations, groups and matches only).
+                  </p>
+                </div>
+
+                {changePartnerPasswordError && (
+                  <div className="mt-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-semibold animate-fade-in">
+                    {changePartnerPasswordError}
+                  </div>
+                )}
+
+                {changePartnerPasswordSuccess && (
+                  <div className="mt-4 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-400 font-semibold animate-fade-in">
+                    {changePartnerPasswordSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleChangePartnerPasswordSubmit} className="space-y-4 max-w-md mt-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+                      Current Partner Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter current partner password"
+                      value={partnerCurrentPassword}
+                      onChange={(e) => setPartnerCurrentPassword(e.target.value)}
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+                      New Partner Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Enter new partner password"
+                      value={partnerNewPassword}
+                      onChange={(e) => setPartnerNewPassword(e.target.value)}
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+                      Confirm New Partner Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Confirm new partner password"
+                      value={partnerConfirmNewPassword}
+                      onChange={(e) => setPartnerConfirmNewPassword(e.target.value)}
+                      className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      disabled={isChangingPartnerPassword}
+                      className="w-full py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 admin-btn-primary"
+                    >
+                      {isChangingPartnerPassword ? (
+                        <>
+                          <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                          Updating Partner Password...
+                        </>
+                      ) : (
+                        "Update Partner Password"
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            </>
+          ) : activeTab === "wallet" ? (
+            <AdminWalletPanel />
+          ) : activeTab === "shop-orders" ? (
+            <AdminShopOrdersPanel />
+          ) : (
             <div className="h-full flex flex-col items-center justify-center max-w-md mx-auto text-center space-y-4 animate-fade-in-up">
-              <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent/20 to-transparent border border-accent/20 flex items-center justify-center text-accent">
                 <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -1843,7 +2697,7 @@ export default function AdminDashboard() {
               placeholder="e.g. Match 1 - Erangel"
               value={newMatchTitle}
               onChange={(e) => setNewMatchTitle(e.target.value)}
-              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
             />
           </div>
 
@@ -1853,7 +2707,7 @@ export default function AdminDashboard() {
               <select
                 value={newMatchMap}
                 onChange={(e) => setNewMatchMap(e.target.value)}
-                className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
               >
                 {["Erangel", "Miramar", "Sanhok", "Vikendi", "Nusa", "Karakin", "Rondo"].map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -1905,7 +2759,7 @@ export default function AdminDashboard() {
                         const newVal = e.target.value;
                         setSelectedGroups((prev) => prev.map((item, i) => i === index ? newVal : item));
                       }}
-                      className="flex-1 bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent"
+                      className="flex-1 bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition-all"
                     >
                       {availableOptions.map((g) => (
                         <option key={g} value={g}>{g}</option>
@@ -1986,22 +2840,22 @@ export default function AdminDashboard() {
       />
 
       {/* Receipt Lightbox Modal */}
-      {expandedReceipt && (
+      {expandedImage && (
         <Modal
-          isOpen={!!expandedReceipt}
-          onClose={() => setExpandedReceipt(null)}
-          title="Payment Receipt Verification"
+          isOpen={!!expandedImage}
+          onClose={() => setExpandedImage(null)}
+          title={expandedImage.title}
           width={650}
         >
           <div className="p-4 flex flex-col items-center gap-4 bg-bg-secondary">
             <div className="relative w-full max-h-[70vh] overflow-auto rounded-lg border border-border bg-bg-primary/50 flex justify-center p-2">
               <img
-                src={expandedReceipt}
-                alt="Full receipt"
+                src={expandedImage.src}
+                alt={expandedImage.title}
                 className="max-w-full max-h-[60vh] object-contain rounded-md animate-fade-in-up"
               />
             </div>
-            <Button onClick={() => setExpandedReceipt(null)} variant="secondary" className="px-5">
+            <Button onClick={() => setExpandedImage(null)} variant="secondary" className="px-5">
               Close Preview
             </Button>
           </div>
