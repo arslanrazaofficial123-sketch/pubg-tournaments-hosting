@@ -23,6 +23,7 @@ function toUserProfile(doc: any): UserProfile {
     googleId: doc.googleId || undefined,
     avatar: doc.avatar || undefined,
     bio: doc.bio || undefined,
+    teamData: doc.teamData || undefined,
   };
 }
 

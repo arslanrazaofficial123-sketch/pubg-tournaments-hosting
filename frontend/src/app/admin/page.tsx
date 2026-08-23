@@ -1692,61 +1692,94 @@ export default function AdminDashboard() {
                 <div className="p-6 border-b border-border bg-gradient-to-r from-accent/10 to-transparent flex items-center justify-between">
                   <div>
                     <h3 className="font-bold admin-section-title">Registered Players</h3>
-                    <p className="text-xs text-text-primary/40 mt-1">Manage and audit registered player accounts</p>
+                    <p className="text-xs text-text-primary/40 mt-1">Manage and audit registered player accounts with team data</p>
                   </div>
                   <span className="px-3 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
                     {users.length} Total
                   </span>
                 </div>
 
-                <div className="overflow-x-auto admin-table">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
-                        <th className="px-6 py-4">Player UID</th>
-                        <th className="px-6 py-4">In-Game Name</th>
-                        <th className="px-6 py-4">WhatsApp Contact</th>
-                        <th className="px-6 py-4 text-right">{adminRole === "admin" ? "Actions" : "Access"}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60 text-sm">
-                      {users.length > 0 ? (
-                        users.map((user) => (
-                          <tr key={user.uid} className="hover:bg-white/[0.02] transition-colors">
-                            <td className="px-6 py-4 font-mono text-accent">
-                              {user.uid}
-                            </td>
-                            <td className="px-6 py-4 font-semibold text-text-primary">
-                              {user.inGameName}
-                            </td>
-                            <td className="px-6 py-4 text-text-primary/70">
-                              {user.whatsapp}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              {adminRole === "admin" ? (
-                                <button
-                                  onClick={() => handleDeleteUser(user.uid, user.inGameName)}
-                                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-all cursor-pointer"
-                                >
-                                  Delete Account
-                                </button>
+                <div className="divide-y divide-border/60">
+                  {users.length > 0 ? (
+                    users.map((user) => (
+                      <div key={user.uid} className="p-6 hover:bg-white/[0.02] transition-colors">
+                        {/* User info row */}
+                        <div className="flex items-center justify-between gap-4 mb-3">
+                          <div className="flex items-center gap-4">
+                            {/* Avatar or default */}
+                            <div className="h-12 w-12 rounded-lg overflow-hidden bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                              {user.avatar ? (
+                                <img src={user.avatar} alt={user.inGameName} className="h-full w-full object-cover" />
                               ) : (
-                                <span className="px-3 py-1.5 rounded bg-white/5 border border-border text-xs font-semibold text-text-primary/40">
-                                  Read Only
-                                </span>
+                                <span className="text-lg font-bold text-accent/50">{user.inGameName?.charAt(0)?.toUpperCase() || "?"}</span>
                               )}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={4} className="px-6 py-12 text-center text-text-primary/40">
-                            No registered users found.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-text-primary">{user.inGameName || "No name"}</p>
+                              <p className="text-xs text-text-primary/50 font-mono">UID: {user.uid}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-xs text-text-primary/40">WhatsApp</p>
+                              <p className="text-sm text-text-primary/70">{user.whatsapp || "Not set"}</p>
+                            </div>
+                            {adminRole === "admin" && (
+                              <button
+                                onClick={() => handleDeleteUser(user.uid, user.inGameName)}
+                                className="px-3 py-1.5 rounded-lg bg-white/5 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-all cursor-pointer"
+                              >
+                                Delete Account
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Team Data section */}
+                        {user.teamData && (
+                          <div className="mt-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-accent">Team</span>
+                              <span className="text-xs text-text-primary/60 font-semibold">{user.teamData.teamName || "Unnamed"}</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-border text-text-primary/40">{user.teamData.format}</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {/* Team Logo */}
+                              {user.teamData.teamLogo && (
+                                <div className="shrink-0">
+                                  <img
+                                    src={user.teamData.teamLogo}
+                                    alt="Team Logo"
+                                    className="h-14 w-14 rounded-lg object-cover border border-border"
+                                  />
+                                </div>
+                              )}
+                              {/* Player Pictures */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {user.teamData.players?.filter(p => p.picture).map((player, i) => (
+                                  <div key={i} className="flex flex-col items-center gap-0.5">
+                                    <img
+                                      src={player.picture}
+                                      alt={player.inGameName || `Player ${i + 1}`}
+                                      className="h-10 w-10 rounded-md object-cover border border-border"
+                                    />
+                                    <span className="text-[9px] text-text-primary/40 truncate max-w-[60px]">{player.inGameName || `P${i + 1}`}</span>
+                                  </div>
+                                ))}
+                                {(!user.teamData.players || user.teamData.players.filter(p => p.picture).length === 0) && (
+                                  <span className="text-xs text-text-primary/30 italic">No player pictures uploaded</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-6 py-12 text-center text-text-primary/40">
+                      No registered users found.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
