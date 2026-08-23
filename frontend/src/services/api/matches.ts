@@ -11,6 +11,7 @@ export interface Match {
   groups: string[];
   roomId?: string;
   roomPassword?: string;
+  revealAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,6 +43,7 @@ export async function createMatch(payload: {
   groups: string[];
   roomId?: string;
   roomPassword?: string;
+  revealAt?: string;
 }): Promise<Match> {
   return apiClient<Match>("/matches", {
     method: "POST",
@@ -65,6 +67,7 @@ export async function updateMatch(
     groups: string[];
     roomId?: string;
     roomPassword?: string;
+    revealAt?: string;
   }>
 ): Promise<Match> {
   return apiClient<Match>(`/matches/${matchId}`, {

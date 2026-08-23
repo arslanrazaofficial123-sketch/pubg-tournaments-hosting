@@ -16,6 +16,7 @@ const matchSchema = new Schema(
     groups: { type: [String], default: [] },
     roomId: { type: String, default: "" },
     roomPassword: { type: String, default: "" },
+    revealAt: { type: String, default: "" },
   },
   { timestamps: true },
 );

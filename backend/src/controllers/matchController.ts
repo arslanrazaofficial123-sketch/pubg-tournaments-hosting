@@ -17,7 +17,7 @@ export const getMatchesList = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const createNewMatch = asyncHandler(async (req: Request, res: Response) => {
-  const { tournamentId, day, title, map, time, date, groups, roomId, roomPassword } = req.body;
+  const { tournamentId, day, title, map, time, date, groups, roomId, roomPassword, revealAt } = req.body;
 
   if (!tournamentId || day === undefined || !title || !map || !time || !date) {
     res.status(400).json({ message: "tournamentId, day, title, map, time, and date are required fields" });
@@ -34,6 +34,7 @@ export const createNewMatch = asyncHandler(async (req: Request, res: Response) =
     groups: Array.isArray(groups) ? groups : [],
     roomId,
     roomPassword,
+    revealAt: revealAt || "",
   });
 
   res.status(201).json(match);

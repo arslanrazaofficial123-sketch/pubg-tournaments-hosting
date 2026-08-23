@@ -158,8 +158,15 @@ export default function AdminDashboard() {
   });
   const [newMatchRoomId, setNewMatchRoomId] = useState("");
   const [newMatchRoomPassword, setNewMatchRoomPassword] = useState("");
+  const [newMatchRevealAt, setNewMatchRevealAt] = useState("");
   const [selectedGroups, setSelectedGroups] = useState<string[]>(["Group A"]);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // States for changing admin password in Settings
   const [currentPassword, setCurrentPassword] = useState("");
@@ -512,6 +519,7 @@ export default function AdminDashboard() {
           groups: selectedGroups,
           roomId: newMatchRoomId,
           roomPassword: newMatchRoomPassword,
+          revealAt: newMatchRevealAt || "",
         });
         setEditingMatchId(null);
       } else {
@@ -525,12 +533,14 @@ export default function AdminDashboard() {
           groups: selectedGroups,
           roomId: newMatchRoomId,
           roomPassword: newMatchRoomPassword,
+          revealAt: newMatchRevealAt || "",
         });
       }
       // Clear form
       setNewMatchTitle("");
       setNewMatchRoomId("");
       setNewMatchRoomPassword("");
+      setNewMatchRevealAt("");
       setSelectedGroups(["Group A"]);
       const today = new Date();
       const datePartToday = today.toISOString().split("T")[0];
@@ -579,6 +589,7 @@ export default function AdminDashboard() {
     setSelectedGroups(match.groups || ["Group A"]);
     setNewMatchRoomId(match.roomId || "");
     setNewMatchRoomPassword(match.roomPassword || "");
+    setNewMatchRevealAt(match.revealAt || "");
     setIsMatchModalOpen(true);
   };
 
@@ -587,6 +598,7 @@ export default function AdminDashboard() {
     setNewMatchTitle("");
     setNewMatchRoomId("");
     setNewMatchRoomPassword("");
+    setNewMatchRevealAt("");
     setSelectedGroups(["Group A"]);
     const today = new Date();
     const datePartToday = today.toISOString().split("T")[0];
@@ -2437,8 +2449,38 @@ export default function AdminDashboard() {
                                     <div>Date: <span className="font-semibold text-text-primary">{m.date}</span></div>
                                     <div>Time: <span className="font-semibold text-text-primary">{m.time}</span></div>
                                     <div>Groups: <span className="font-semibold text-accent">{m.groups?.join(", ") || "None"}</span></div>
-                                    {m.roomId && <div>Room ID: <span className="font-mono font-bold text-text-primary">{m.roomId}</span></div>}
-                                    {m.roomPassword && <div>Password: <span className="font-mono font-bold text-text-primary">{m.roomPassword}</span></div>}
+                                    {(() => {
+                                      if (m.revealAt) {
+                                        const revealTime = new Date(m.revealAt).getTime();
+                                        const diff = revealTime - now;
+                                        if (diff > 0) {
+                                          const hrs = Math.floor(diff / 3600000);
+                                          const mins = Math.floor((diff % 3600000) / 60000);
+                                          const secs = Math.floor((diff % 60000) / 1000);
+                                          return (
+                                            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 mt-2">
+                                              <div className="text-[10px] font-bold uppercase tracking-wider text-amber-400 mb-1">ID Pass Locked</div>
+                                              <div className="font-mono font-bold text-amber-300 text-sm tabular-nums">
+                                                {String(hrs).padStart(2, "0")}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
+                                              </div>
+                                              <div className="text-[10px] text-amber-400/60 mt-0.5">Reveals at {new Date(m.revealAt).toLocaleString("en-PK", { hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                                            </div>
+                                          );
+                                        }
+                                        return (
+                                          <>
+                                            {m.roomId && <div>Room ID: <span className="font-mono font-bold text-text-primary">{m.roomId}</span></div>}
+                                            {m.roomPassword && <div>Password: <span className="font-mono font-bold text-text-primary">{m.roomPassword}</span></div>}
+                                          </>
+                                        );
+                                      }
+                                      return (
+                                        <>
+                                          {m.roomId && <div>Room ID: <span className="font-mono font-bold text-text-primary">{m.roomId}</span></div>}
+                                          {m.roomPassword && <div>Password: <span className="font-mono font-bold text-text-primary">{m.roomPassword}</span></div>}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
@@ -2951,6 +2993,19 @@ export default function AdminDashboard() {
                 className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent font-mono"
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+              ID Pass Reveal Time (Optional)
+            </label>
+            <input
+              type="datetime-local"
+              value={newMatchRevealAt}
+              onChange={(e) => setNewMatchRevealAt(e.target.value)}
+              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent font-mono"
+            />
+            <p className="text-[10px] text-text-primary/35">Room ID & Password will auto-reveal to players at this time. Leave empty to always show.</p>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-border/40 mt-6">

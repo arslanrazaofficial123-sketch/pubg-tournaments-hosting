@@ -11,6 +11,7 @@ export async function createMatch(payload: {
   groups?: string[];
   roomId?: string;
   roomPassword?: string;
+  revealAt?: string;
 }) {
   const matchId = `match-${uuidv4().substring(0, 8)}`;
   const match = new MatchModel({
@@ -44,6 +45,7 @@ export async function updateMatchById(
     groups?: string[];
     roomId?: string;
     roomPassword?: string;
+    revealAt?: string;
   }>,
 ) {
   const match = await MatchModel.findOneAndUpdate(
