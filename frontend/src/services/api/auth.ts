@@ -157,6 +157,16 @@ export async function changePassword(payload: {
   });
 }
 
+export async function setPassword(payload: {
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ success: boolean; message: string }> {
+  return apiClient<{ success: boolean; message: string }>("/auth/set-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function uploadAvatar(dataUrl: string): Promise<{ avatarUrl: string }> {
   return apiClient<{ avatarUrl: string }>("/auth/avatar", {
     method: "POST",

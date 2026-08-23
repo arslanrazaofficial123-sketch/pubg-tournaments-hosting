@@ -15,6 +15,7 @@ import {
   linkUid,
   updateProfileHandler,
   changePasswordHandler,
+  setPasswordHandler,
   uploadAvatarHandler,
 } from "../controllers/authController.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
@@ -27,6 +28,7 @@ router.post("/google", googleLogin);
 router.post("/link-uid", requireAuth, linkUid);
 router.put("/profile", requireAuth, updateProfileHandler);
 router.put("/password", requireAuth, changePasswordHandler);
+router.post("/set-password", requireAuth, setPasswordHandler);
 router.post("/avatar", requireAuth, uploadAvatarHandler);
 router.post("/verify-admin", verifyAdmin);
 router.post("/verify-partner", verifyPartner);

@@ -242,3 +242,16 @@ export async function changeUserPassword(
   return true;
 }
 
+export async function setUserPassword(
+  uid: string,
+  newPassword: string,
+): Promise<boolean> {
+  const doc = await UserModel.findOne({ uid });
+  if (!doc) throw new Error("USER_NOT_FOUND");
+  if (doc.password) throw new Error("PASSWORD_ALREADY_SET");
+
+  doc.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+  await doc.save();
+  return true;
+}
+

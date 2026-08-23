@@ -13,6 +13,7 @@ import {
   linkUidToUser,
   updateUserProfile,
   changeUserPassword,
+  setUserPassword,
 } from "../services/authService.js";
 import { lookupPlayerByUid } from "../services/playerLookupService.js";
 import { uploadImage } from "../services/storageService.js";
@@ -352,6 +353,28 @@ export async function changePasswordHandler(req: AuthenticatedRequest, res: Resp
     if (code === "PASSWORD_NOT_SET") return res.status(400).json({ message: "This account uses Google login and has no password." });
     if (code === "CURRENT_PASSWORD_WRONG") return res.status(400).json({ message: "Current password is incorrect." });
     res.status(500).json({ message: "Failed to change password." });
+  }
+}
+
+export async function setPasswordHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { newPassword, confirmPassword } = req.body || {};
+    if (!newPassword) {
+      return res.status(400).json({ message: "New password is required." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match." });
+    }
+    await setUserPassword(req.user!.uid, newPassword);
+    res.json({ success: true, message: "Password set successfully." });
+  } catch (err: any) {
+    const code = err?.message || "";
+    if (code === "USER_NOT_FOUND") return res.status(404).json({ message: "User not found." });
+    if (code === "PASSWORD_ALREADY_SET") return res.status(400).json({ message: "Password already set. Use change password instead." });
+    res.status(500).json({ message: "Failed to set password." });
   }
 }
 

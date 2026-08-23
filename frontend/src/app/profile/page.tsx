@@ -8,6 +8,7 @@ import { useAlert } from "@/components/ui/AlertProvider";
 import { getSessionUser, isLoggedIn as checkLoggedIn, logout, setSession } from "@/lib/auth";
 import {
   changePassword,
+  setPassword,
   fetchAllRegistrations,
   getTournaments,
   linkUidToAccount,
@@ -44,6 +45,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isChanging, setIsChanging] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
 
   // Career stats data
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -203,6 +205,29 @@ export default function ProfilePage() {
       showAlert(error?.message || "Failed to change password.", "error");
     } finally {
       setIsChanging(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!user) return;
+    if (newPassword.length < 6) {
+      showAlert("Password must be at least 6 characters.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showAlert("Passwords do not match.", "error");
+      return;
+    }
+    setIsSettingPassword(true);
+    try {
+      await setPassword({ newPassword, confirmPassword });
+      setNewPassword("");
+      setConfirmPassword("");
+      showAlert("Password set successfully! You can now login with UID & password.", "success");
+    } catch (error: any) {
+      showAlert(error?.message || "Failed to set password.", "error");
+    } finally {
+      setIsSettingPassword(false);
     }
   };
 
@@ -442,9 +467,28 @@ export default function ProfilePage() {
           </div>
 
           {user?.googleId ? (
-            <p className="text-sm text-text-primary/60">
-              You signed in with Google — this account has no password.
-            </p>
+            <div className="space-y-4">
+              <p className="text-sm text-text-primary/60">
+                Your account was created with Google. Set a password to also login with UID &amp; password.
+              </p>
+              <Input
+                label="New Password *"
+                name="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <Input
+                label="Confirm New Password *"
+                name="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <Button variant="primary" onClick={handleSetPassword} disabled={isSettingPassword}>
+                {isSettingPassword ? "Setting..." : "Set Password"}
+              </Button>
+            </div>
           ) : (
             <div className="space-y-4">
               <Input
