@@ -29,7 +29,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { uid, inGameName } = req.body;
+  const { uid, inGameName, password } = req.body;
 
   if (!uid?.trim()) {
     res.status(400).json({ message: "UID is required" });
@@ -38,6 +38,17 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   if (!isIntegerOnly(String(uid).trim())) {
     res.status(400).json({ message: "UID must contain integers only" });
+    return;
+  }
+
+  if (password) {
+    const user = await loginUser({ uid: String(uid).trim(), password: String(password) });
+    if (!user) {
+      res.status(401).json({ message: "Invalid UID or password" });
+      return;
+    }
+    const token = signToken({ uid: user.uid, role: "user" });
+    res.json({ ...user, token });
     return;
   }
 
