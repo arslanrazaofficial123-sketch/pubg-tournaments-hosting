@@ -15,7 +15,8 @@ import {
   updateRegistrationStats,
 } from "../services/tournamentService.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
-import { sendRegistrationNotificationEmail } from "../utils/email.js";
+import { sendRegistrationNotificationEmail, sendTournamentNotificationEmail, type TournamentNotificationData } from "../utils/email.js";
+import { UserModel } from "../models/User.js";
 
 // ... [existing functions remain unchanged]
 
@@ -179,5 +180,57 @@ export const updateRegStats = asyncHandler(async (req: Request, res: Response) =
       res.status(500).json({ message: err.message || "Failed to update registration stats" });
     }
   }
+});
+
+export const notifyTournament = asyncHandler(async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const tournament = await findTournamentById(id);
+
+  if (!tournament) {
+    res.status(404).json({ message: "Tournament not found" });
+    return;
+  }
+
+  const users = await UserModel.find({ email: { $exists: true, $ne: "" } }).select("email inGameName").lean();
+
+  if (users.length === 0) {
+    res.json({ success: true, message: "No users with email addresses found.", sent: 0, failed: 0 });
+    return;
+  }
+
+  const tournamentData: TournamentNotificationData = {
+    title: tournament.title,
+    tournamentId: tournament.tournamentId,
+    startDate: tournament.startDate,
+    endDate: tournament.endDate,
+    registrationFee: tournament.registrationFee,
+    prizePool: tournament.prizePool,
+    format: tournament.format,
+    region: tournament.region,
+    registrationDeadline: tournament.registrationDeadline,
+    bannerUrl: tournament.images?.card,
+  };
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    if (!user.email) continue;
+    try {
+      const ok = await sendTournamentNotificationEmail(user.email, tournamentData);
+      if (ok) sent++;
+      else failed++;
+    } catch {
+      failed++;
+    }
+  }
+
+  res.json({
+    success: true,
+    message: `Notifications sent. ${sent} delivered, ${failed} failed.`,
+    sent,
+    failed,
+    total: users.length,
+  });
 });
 

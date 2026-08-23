@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, type Registration } from "@/services/api/tournaments";
+import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, sendTournamentNotifications, type Registration } from "@/services/api/tournaments";
 import { fetchMatches, createMatch, deleteMatch, updateMatch } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
@@ -265,6 +265,7 @@ export default function AdminDashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
+  const [notifyingTournamentId, setNotifyingTournamentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -655,6 +656,21 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error("Failed to delete tournament:", err);
         showAlert("Failed to delete tournament. Please try again.", "error");
+      }
+    });
+  };
+
+  const handleNotifyTournament = async (id: string, title: string) => {
+    showConfirm(`Send email notifications to all registered users about "${title}"?`, async () => {
+      setNotifyingTournamentId(id);
+      try {
+        const res = await sendTournamentNotifications(id);
+        showAlert(res.message || `Notifications sent to ${res.sent} users.`, "success");
+      } catch (err: any) {
+        console.error("Failed to send notifications:", err);
+        showAlert(err.message || "Failed to send notifications. Please try again.", "error");
+      } finally {
+        setNotifyingTournamentId(null);
       }
     });
   };
@@ -1681,6 +1697,20 @@ export default function AdminDashboard() {
                                   className="px-3 py-1.5 rounded bg-white/5 border border-red-500/40 text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-all cursor-pointer"
                                 >
                                   Delete
+                                </button>
+                                <button
+                                  onClick={() => handleNotifyTournament(tournament.id, tournament.title)}
+                                  disabled={notifyingTournamentId === tournament.id}
+                                  className="px-3 py-1.5 rounded bg-white/5 border border-blue-500/40 text-xs font-semibold text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/60 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {notifyingTournamentId === tournament.id ? (
+                                    <span className="flex items-center gap-1">
+                                      <span className="h-3 w-3 rounded-full border-2 border-blue-400 border-t-transparent animate-spin" />
+                                      Sending
+                                    </span>
+                                  ) : (
+                                    "Notify"
+                                  )}
                                 </button>
                               </div>
                             </td>

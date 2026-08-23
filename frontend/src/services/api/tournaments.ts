@@ -59,10 +59,12 @@ export async function registerForTournament(
   tournamentId: string,
   payload: {
     teamName?: string;
+    teamLogo?: string;
     whatsapp: string;
-    receiptImage: string;
-    transactionId: string;
-    members: Array<{ uid: string; inGameName: string }>;
+    receiptImage?: string;
+    transactionId?: string;
+    paymentMethod?: "manual" | "wallet";
+    members: Array<{ uid: string; inGameName: string; picture?: string }>;
     group?: string;
   },
 ): Promise<any> {
@@ -76,12 +78,13 @@ export interface Registration {
   id: string;
   tournamentId: string;
   teamName?: string;
+  teamLogo?: string;
   group: string;
   whatsapp: string;
   receiptImage: string;
   transactionId: string;
   status: "pending" | "approved" | "rejected";
-  members: Array<{ uid: string; inGameName: string }>;
+  members: Array<{ uid: string; inGameName: string; picture?: string }>;
   createdAt: string;
   kills?: number;
   chickenDinner?: number;
@@ -121,6 +124,14 @@ export async function fetchAllRegistrations(tournamentId?: string, memberUid?: s
   } catch {
     return [];
   }
+}
+
+export async function sendTournamentNotifications(
+  tournamentId: string,
+): Promise<{ success: boolean; message: string; sent: number; failed: number; total: number }> {
+  return apiClient(`/tournaments/${tournamentId}/notify`, {
+    method: "POST",
+  });
 }
 
 export async function updateRegistrationStats(

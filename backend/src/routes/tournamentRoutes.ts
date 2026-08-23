@@ -10,6 +10,7 @@ import {
   updateRegStatus,
   deleteRegistration,
   updateRegStats,
+  notifyTournament,
 } from "../controllers/tournamentController.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 
@@ -25,5 +26,6 @@ router.post("/", requireAdmin, createTournament);
 router.delete("/:id", requireAdmin, deleteTournament);
 router.put("/:id", requireAdmin, updateTournament);
 router.post("/:id/register", requireAuth, registerTournament);
+router.post("/:id/notify", requireAdmin, notifyTournament);
 
 export default router;

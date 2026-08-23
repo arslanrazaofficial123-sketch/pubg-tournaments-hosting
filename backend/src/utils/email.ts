@@ -236,3 +236,105 @@ export async function sendRegistrationNotificationEmail(data: {
   }
   return allSent;
 }
+
+export interface TournamentNotificationData {
+  title: string;
+  tournamentId: string;
+  startDate: string;
+  endDate: string;
+  registrationFee: string;
+  prizePool: string;
+  format: string;
+  region: string;
+  registrationDeadline: string;
+  bannerUrl?: string;
+}
+
+export async function sendTournamentNotificationEmail(
+  to: string,
+  tournament: TournamentNotificationData,
+): Promise<boolean> {
+  const startFormatted = new Date(tournament.startDate).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const deadlineFormatted = new Date(tournament.registrationDeadline).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const bannerHtml = tournament.bannerUrl
+    ? `<img src="${tournament.bannerUrl}" alt="${tournament.title}" style="width:100%;max-width:560px;border-radius:8px;margin:0 auto 20px;display:block;" />`
+    : "";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🎮 New Tournament!</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0;">${tournament.title}</p>
+      </div>
+      <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+        ${bannerHtml}
+        <p style="font-size: 16px;">Hey champion! 🏆</p>
+        <p>A new tournament just dropped on <strong>Epix Esports</strong>. Here are the details:</p>
+        
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin: 0 0 16px; color: #374151; font-size: 18px;">${tournament.title}</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Date</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 600;">${startFormatted}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Format</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 600;">${tournament.format.toUpperCase()}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Region</td>
+              <td style="padding: 8px 0; text-align: right;">${tournament.region}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Prize Pool</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #7c3aed; font-size: 16px;">${tournament.prizePool}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Entry Fee</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 600;">${tournament.registrationFee}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280;">Registration Deadline</td>
+              <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #dc2626;">${deadlineFormatted}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${env.clientUrl}/dashboard/tournaments/${tournament.tournamentId}" style="display: inline-block; background: linear-gradient(135deg, #7c3aed 0%, #ec4899 100%); color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">Register Now →</a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px;">
+          Don't miss out — slots are limited! Register before the deadline.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          Epix Esports &bull; <a href="${env.clientUrl}" style="color: #7c3aed;">Visit Website</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, `🎮 New Tournament: ${tournament.title} — Register Now!`, html);
+}
