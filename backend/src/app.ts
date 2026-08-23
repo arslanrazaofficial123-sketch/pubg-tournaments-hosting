@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import { env } from "./config/env.js";
 import routes from "./routes/index.js";
 import { notFound } from "./middleware/notFound.js";
@@ -19,6 +20,8 @@ export function createApp() {
   );
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  app.use("/images", express.static(path.join("D:\\epix-images")));
 
   app.use("/api", routes);
 

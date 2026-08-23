@@ -142,7 +142,15 @@ export default function TeamDataPage() {
   const saveTeamData = (data: TeamData) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     setTeamData(data);
-    saveTeamDataApi(data);
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveTeamDataApi(teamData);
+      showAlert("Team data saved successfully", "success");
+    } catch {
+      showAlert("Failed to save to server. Data saved locally.", "error");
+    }
   };
 
   const handleTeamNameChange = (name: string) => {
@@ -392,6 +400,14 @@ export default function TeamDataPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="mt-6 flex justify-end">
+        <Button onClick={handleSave} className="gap-2">
+          <Save className="h-4 w-4" />
+          Save Team Data
+        </Button>
       </div>
 
       {/* How it Works */}
