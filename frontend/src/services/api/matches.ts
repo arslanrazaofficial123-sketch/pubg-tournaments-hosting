@@ -65,13 +65,21 @@ export async function updateMatch(
     time: string;
     date: string;
     groups: string[];
-    roomId?: string;
-    roomPassword?: string;
-    revealAt?: string;
+    roomId: string;
+    roomPassword: string;
+    revealAt: string;
   }>
 ): Promise<Match> {
   return apiClient<Match>(`/matches/${matchId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function sendMatchCredentials(
+  matchId: string,
+): Promise<{ success: boolean; message: string; sent: number; failed: number; total: number }> {
+  return apiClient(`/matches/${matchId}/send-credentials`, {
+    method: "POST",
   });
 }

@@ -4,6 +4,7 @@ import {
   createNewMatch,
   deleteMatch,
   updateExistingMatch,
+  sendMatchCredentials,
 } from "../controllers/matchController.js";
 import { requireStaff } from "../middleware/auth.js";
 
@@ -11,6 +12,7 @@ const router = Router();
 
 router.get("/", getMatchesList);
 router.post("/", requireStaff, createNewMatch);
+router.post("/:id/send-credentials", requireStaff, sendMatchCredentials);
 router.put("/:id", requireStaff, updateExistingMatch);
 router.delete("/:id", requireStaff, deleteMatch);
 

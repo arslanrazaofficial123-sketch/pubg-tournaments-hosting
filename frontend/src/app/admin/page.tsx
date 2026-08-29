@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, sendTournamentNotifications, type Registration } from "@/services/api/tournaments";
-import { fetchMatches, createMatch, deleteMatch, updateMatch } from "@/services/api/matches";
+import { fetchMatches, createMatch, deleteMatch, updateMatch, sendMatchCredentials } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
 import { fetchAllUsers, deleteAccount, verifyAdminPassword, verifyPartnerPassword, changeAdminPassword, changePartnerPassword } from "@/services/api/auth";
@@ -266,6 +266,7 @@ export default function AdminDashboard() {
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [notifyingTournamentId, setNotifyingTournamentId] = useState<string | null>(null);
+  const [sendingCredentialsMatchId, setSendingCredentialsMatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -671,6 +672,21 @@ export default function AdminDashboard() {
         showAlert(err.message || "Failed to send notifications. Please try again.", "error");
       } finally {
         setNotifyingTournamentId(null);
+      }
+    });
+  };
+
+  const handleSendCredentials = async (matchId: string, matchTitle: string) => {
+    showConfirm(`Send Room ID & Password via WhatsApp to all registered teams for "${matchTitle}"?`, async () => {
+      setSendingCredentialsMatchId(matchId);
+      try {
+        const res = await sendMatchCredentials(matchId);
+        showAlert(res.message || `WhatsApp credentials sent to ${res.sent} teams.`, "success");
+      } catch (err: any) {
+        console.error("Failed to send credentials:", err);
+        showAlert(err.message || "Failed to send credentials.", "error");
+      } finally {
+        setSendingCredentialsMatchId(null);
       }
     });
   };
@@ -2514,6 +2530,22 @@ export default function AdminDashboard() {
                                   </div>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
+                                  {m.roomId && m.roomPassword && (
+                                    <button
+                                      onClick={() => handleSendCredentials(m.id, m.title)}
+                                      disabled={sendingCredentialsMatchId === m.id}
+                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {sendingCredentialsMatchId === m.id ? (
+                                        <span className="flex items-center gap-1">
+                                          <span className="h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                                          Sending...
+                                        </span>
+                                      ) : (
+                                        "📱 Send ID Pass"
+                                      )}
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => handleEditMatchClick(m)}
                                     className="px-2.5 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/70 hover:text-text-primary hover:bg-white/10 transition-all cursor-pointer"
