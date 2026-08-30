@@ -267,6 +267,8 @@ export default function AdminDashboard() {
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [notifyingTournamentId, setNotifyingTournamentId] = useState<string | null>(null);
   const [sendingCredentialsMatchId, setSendingCredentialsMatchId] = useState<string | null>(null);
+  const [pendingWaLinks, setPendingWaLinks] = useState<Record<string, Array<{ teamName: string; phone: string; link: string }>>>({});
+  const [openingAllMatchId, setOpeningAllMatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -683,13 +685,8 @@ export default function AdminDashboard() {
         const res = await sendMatchCredentials(matchId);
         const waLinks = res.waLinks || [];
         if (waLinks.length > 0) {
-          const linksHtml = waLinks
-            .map((w) => `<a href="${w.link}" target="_blank" style="display:inline-block;margin:4px 0;padding:8px 16px;background:#25d366;color:white;border-radius:8px;text-decoration:none;font-weight:600;">📱 Send to ${w.teamName}</a>`)
-            .join("<br/>");
-          showAlert(
-            `${res.message}\n\nClick below to send manually via WhatsApp:\n\n${linksHtml}`,
-            "success",
-          );
+          setPendingWaLinks((prev) => ({ ...prev, [matchId]: waLinks }));
+          showAlert(`${res.message}\n\nClick "📱 Open All WhatsApp" to open all chat tabs at once.`, "success");
         } else {
           showAlert(res.message || `WhatsApp credentials sent to ${res.sent} teams.`, "success");
         }
@@ -700,6 +697,18 @@ export default function AdminDashboard() {
         setSendingCredentialsMatchId(null);
       }
     });
+  };
+
+  const handleOpenAllWhatsApp = (matchId: string) => {
+    const links = pendingWaLinks[matchId];
+    if (!links || links.length === 0) return;
+    setOpeningAllMatchId(matchId);
+    links.forEach((w, i) => {
+      setTimeout(() => {
+        window.open(w.link, "_blank");
+      }, i * 300);
+    });
+    setTimeout(() => setOpeningAllMatchId(null), links.length * 300 + 500);
   };
 
   const handleStartEditStats = (reg: Registration) => {
@@ -2542,20 +2551,38 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
                                   {m.roomId && m.roomPassword && (
-                                    <button
-                                      onClick={() => handleSendCredentials(m.id, m.title)}
-                                      disabled={sendingCredentialsMatchId === m.id}
-                                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {sendingCredentialsMatchId === m.id ? (
-                                        <span className="flex items-center gap-1">
-                                          <span className="h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
-                                          Sending...
-                                        </span>
-                                      ) : (
-                                        "📱 Send ID Pass"
+                                    <>
+                                      <button
+                                        onClick={() => handleSendCredentials(m.id, m.title)}
+                                        disabled={sendingCredentialsMatchId === m.id}
+                                        className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {sendingCredentialsMatchId === m.id ? (
+                                          <span className="flex items-center gap-1">
+                                            <span className="h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                                            Sending...
+                                          </span>
+                                        ) : (
+                                          "📱 Send ID Pass"
+                                        )}
+                                      </button>
+                                      {pendingWaLinks[m.id] && pendingWaLinks[m.id].length > 0 && (
+                                        <button
+                                          onClick={() => handleOpenAllWhatsApp(m.id)}
+                                          disabled={openingAllMatchId === m.id}
+                                          className="px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/30 text-xs font-semibold text-green-400 hover:bg-green-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {openingAllMatchId === m.id ? (
+                                            <span className="flex items-center gap-1">
+                                              <span className="h-3 w-3 rounded-full border-2 border-green-400 border-t-transparent animate-spin" />
+                                              Opening...
+                                            </span>
+                                          ) : (
+                                            `💬 Open All WhatsApp (${pendingWaLinks[m.id].length})`
+                                          )}
+                                        </button>
                                       )}
-                                    </button>
+                                    </>
                                   )}
                                   <button
                                     onClick={() => handleEditMatchClick(m)}
