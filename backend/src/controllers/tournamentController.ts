@@ -13,6 +13,7 @@ import {
   updateRegistrationStatus,
   deleteRegistrationById,
   updateRegistrationStats,
+  updateRegistrationSlot,
 } from "../services/tournamentService.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { sendRegistrationNotificationEmail, sendTournamentNotificationEmail, type TournamentNotificationData } from "../utils/email.js";
@@ -186,17 +187,16 @@ export const updateRegSlot = asyncHandler(async (req: Request, res: Response) =>
   const id = String(req.params.id);
   const { slotNumber } = req.body;
 
-  const { RegistrationModel } = await import("../models/Registration.js");
-  const doc = await RegistrationModel.findOneAndUpdate(
-    { id },
-    { $set: { slotNumber: slotNumber === null || slotNumber === undefined ? null : Number(slotNumber) } },
-    { new: true },
-  );
-  if (!doc) {
-    res.status(404).json({ message: "Registration not found" });
-    return;
+  try {
+    const updated = await updateRegistrationSlot(id, slotNumber);
+    res.json(updated);
+  } catch (err: any) {
+    if (err.message === "REGISTRATION_NOT_FOUND") {
+      res.status(404).json({ message: "Registration not found" });
+    } else {
+      res.status(500).json({ message: err.message || "Failed to update slot" });
+    }
   }
-  res.json(doc.toObject());
 });
 
 export const notifyTournament = asyncHandler(async (req: Request, res: Response) => {

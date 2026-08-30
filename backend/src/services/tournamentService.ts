@@ -373,3 +373,18 @@ export async function updateRegistrationStats(
   return doc.toObject();
 }
 
+export async function updateRegistrationSlot(
+  registrationId: string,
+  slotNumber: number | null,
+): Promise<any> {
+  const doc = await RegistrationModel.findOneAndUpdate(
+    { id: registrationId },
+    { $set: { slotNumber: slotNumber === null || slotNumber === undefined ? null : Number(slotNumber) } },
+    { new: true },
+  );
+  if (!doc) {
+    throw new Error("REGISTRATION_NOT_FOUND");
+  }
+  return doc.toObject();
+}
+
