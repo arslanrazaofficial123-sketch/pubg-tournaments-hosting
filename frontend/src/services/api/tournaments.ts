@@ -90,6 +90,7 @@ export interface Registration {
   chickenDinner?: number;
   totalPoints?: number;
   rank?: number;
+  slotNumber?: number | null;
 }
 
 export async function updateRegistrationStatus(
@@ -146,5 +147,15 @@ export async function updateRegistrationStats(
   return apiClient<Registration>(`/tournaments/registrations/${registrationId}/stats`, {
     method: "PUT",
     body: JSON.stringify(stats),
+  });
+}
+
+export async function updateRegistrationSlot(
+  registrationId: string,
+  slotNumber: number | null,
+): Promise<Registration> {
+  return apiClient<Registration>(`/tournaments/registrations/${registrationId}/slot`, {
+    method: "PUT",
+    body: JSON.stringify({ slotNumber }),
   });
 }

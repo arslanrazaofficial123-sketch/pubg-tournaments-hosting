@@ -382,6 +382,14 @@ export default function TournamentTeamPage() {
                       <span className="text-base font-bold text-text-primary">{registration.teamName || "Solo Player"}</span>
                     </div>
                     <div className="space-y-0.5">
+                      <span className="text-[9px] uppercase font-bold text-text-primary/30 tracking-widest block">Slot Number</span>
+                      <span className="text-base font-bold text-accent">{registration.slotNumber != null ? `#${registration.slotNumber}` : "Not assigned"}</span>
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="text-[9px] uppercase font-bold text-text-primary/30 tracking-widest block">Group</span>
+                      <span className="text-base font-bold text-text-primary">{registration.group}</span>
+                    </div>
+                    <div className="space-y-0.5">
                       <span className="text-[9px] uppercase font-bold text-text-primary/30 tracking-widest block">Contact (WhatsApp)</span>
                       <span className="text-base font-mono text-text-primary">{registration.whatsapp}</span>
                     </div>
@@ -464,9 +472,16 @@ export default function TournamentTeamPage() {
                                   {groupRegs.length > 0 ? (
                                     groupRegs.map((reg) => (
                                       <div key={reg.id} className="p-3 flex items-center justify-between hover:bg-white/[0.01] transition-all">
+                                      <div className="flex items-center gap-2">
+                                        {reg.slotNumber != null && (
+                                          <span className="px-1.5 py-0.5 rounded bg-accent/15 border border-accent/25 text-[8px] font-bold text-accent">
+                                            #{reg.slotNumber}
+                                          </span>
+                                        )}
                                         <span className="font-bold text-xs text-text-primary">
                                           {reg.teamName || "Solo Player"}
                                         </span>
+                                      </div>
                                         {reg.id === registration.id && (
                                           <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/25 text-[8px] font-bold text-accent uppercase tracking-wider">
                                             My Team

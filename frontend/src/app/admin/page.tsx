@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, sendTournamentNotifications, type Registration } from "@/services/api/tournaments";
+import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, type Registration } from "@/services/api/tournaments";
 import { fetchMatches, createMatch, deleteMatch, updateMatch, sendMatchCredentials } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
@@ -147,6 +147,8 @@ export default function AdminDashboard() {
   const [statsChickenDinner, setStatsChickenDinner] = useState<number>(0);
   const [statsTotalPoints, setStatsTotalPoints] = useState<number>(0);
   const [statsRank, setStatsRank] = useState<number>(0);
+  const [editingSlotRegId, setEditingSlotRegId] = useState<string | null>(null);
+  const [slotInputValue, setSlotInputValue] = useState<string>("");
 
   // Form states for creating matches
   const [newMatchTitle, setNewMatchTitle] = useState("");
@@ -734,6 +736,24 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Failed to save stats:", err);
       showAlert("Failed to save stats.", "error");
+    }
+  };
+
+  const handleSaveSlot = async (regId: string) => {
+    try {
+      const val = slotInputValue.trim();
+      const num = val === "" ? null : Number(val);
+      if (num !== null && (isNaN(num) || num < 0)) {
+        showAlert("Slot must be a non-negative number.", "error");
+        return;
+      }
+      await updateRegistrationSlot(regId, num);
+      setEditingSlotRegId(null);
+      const regList = await fetchAllRegistrations();
+      setRegistrations(regList);
+    } catch (err) {
+      console.error("Failed to save slot:", err);
+      showAlert("Failed to save slot.", "error");
     }
   };
 
@@ -2277,6 +2297,7 @@ export default function AdminDashboard() {
                                     <tr className="border-b border-border bg-white/[0.01] text-xs font-bold uppercase tracking-wider text-text-primary/50">
                                       <th className="px-6 py-4">Team/Player</th>
                                       <th className="px-6 py-4">Members</th>
+                                      <th className="px-6 py-4 w-20">Slot</th>
                                       <th className="px-6 py-4 w-24">Kills</th>
                                       <th className="px-6 py-4 w-28">Chicken Dinner</th>
                                       <th className="px-6 py-4 w-28">Total Points</th>
@@ -2300,6 +2321,31 @@ export default function AdminDashboard() {
                                                 </div>
                                               ))}
                                             </div>
+                                          </td>
+                                          <td className="px-6 py-4">
+                                            {editingSlotRegId === reg.id ? (
+                                              <div className="flex items-center gap-1">
+                                                <input
+                                                  type="number"
+                                                  min={0}
+                                                  value={slotInputValue}
+                                                  onChange={(e) => setSlotInputValue(e.target.value)}
+                                                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveSlot(reg.id); if (e.key === "Escape") setEditingSlotRegId(null); }}
+                                                  className="w-14 bg-bg-primary border border-border rounded px-2 py-1 text-sm text-text-primary focus:outline-none focus:border-accent"
+                                                  autoFocus
+                                                />
+                                                <button onClick={() => handleSaveSlot(reg.id)} className="text-green-400 hover:text-green-300 text-xs cursor-pointer">✓</button>
+                                                <button onClick={() => setEditingSlotRegId(null)} className="text-red-400 hover:text-red-300 text-xs cursor-pointer">✗</button>
+                                              </div>
+                                            ) : (
+                                              <button
+                                                onClick={() => { setEditingSlotRegId(reg.id); setSlotInputValue(reg.slotNumber != null ? String(reg.slotNumber) : ""); }}
+                                                className="px-2 py-0.5 rounded text-xs font-mono cursor-pointer hover:bg-white/10 transition-all text-text-primary/80"
+                                                title="Click to set slot number"
+                                              >
+                                                {reg.slotNumber != null ? `#${reg.slotNumber}` : "—"}
+                                              </button>
+                                            )}
                                           </td>
                                           <td className="px-6 py-4">
                                             {isEditing ? (

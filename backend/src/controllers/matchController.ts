@@ -111,6 +111,8 @@ export const sendMatchCredentials = asyncHandler(async (req: Request, res: Respo
     roomPassword: match.roomPassword,
     matchTime: match.time,
     matchDate: match.date,
+    slotNumber: reg.slotNumber ?? null,
+    group: reg.group,
   }));
 
   const result = await sendMatchCredentialsWhatsApp(payloads);

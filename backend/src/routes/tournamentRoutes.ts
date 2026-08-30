@@ -10,6 +10,7 @@ import {
   updateRegStatus,
   deleteRegistration,
   updateRegStats,
+  updateRegSlot,
   notifyTournament,
 } from "../controllers/tournamentController.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
@@ -20,6 +21,7 @@ router.get("/", getTournaments);
 router.get("/registrations", requireAuth, getRegistrations);
 router.put("/registrations/:id/status", requireStaff, updateRegStatus);
 router.put("/registrations/:id/stats", requireStaff, updateRegStats);
+router.put("/registrations/:id/slot", requireStaff, updateRegSlot);
 router.delete("/registrations/:id", requireStaff, deleteRegistration);
 router.get("/:id", getTournamentById);
 router.post("/", requireAdmin, createTournament);

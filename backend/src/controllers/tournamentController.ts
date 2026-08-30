@@ -182,6 +182,23 @@ export const updateRegStats = asyncHandler(async (req: Request, res: Response) =
   }
 });
 
+export const updateRegSlot = asyncHandler(async (req: Request, res: Response) => {
+  const id = String(req.params.id);
+  const { slotNumber } = req.body;
+
+  const { RegistrationModel } = await import("../models/Registration.js");
+  const doc = await RegistrationModel.findOneAndUpdate(
+    { id },
+    { $set: { slotNumber: slotNumber === null || slotNumber === undefined ? null : Number(slotNumber) } },
+    { new: true },
+  );
+  if (!doc) {
+    res.status(404).json({ message: "Registration not found" });
+    return;
+  }
+  res.json(doc.toObject());
+});
+
 export const notifyTournament = asyncHandler(async (req: Request, res: Response) => {
   const id = String(req.params.id);
   const tournament = await findTournamentById(id);

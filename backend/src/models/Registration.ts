@@ -32,6 +32,7 @@ const registrationSchema = new Schema(
     chickenDinner: { type: Number, default: 0 },
     totalPoints: { type: Number, default: 0 },
     rank: { type: Number, default: 0 },
+    slotNumber: { type: Number, default: null },
   },
   { timestamps: true },
 );

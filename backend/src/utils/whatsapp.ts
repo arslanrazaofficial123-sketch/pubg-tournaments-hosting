@@ -19,6 +19,8 @@ export interface MatchCredentialsPayload {
   roomPassword: string;
   matchTime: string;
   matchDate: string;
+  slotNumber?: number | null;
+  group?: string;
 }
 
 export function buildMatchCredentialsMessage(teamName: string, data: Omit<MatchCredentialsPayload, "teamName" | "whatsappNumber">): string {
@@ -31,13 +33,16 @@ export function buildMatchCredentialsMessage(teamName: string, data: Omit<MatchC
     timeZone: "Asia/Karachi",
   });
 
+  const slotLine = data.slotNumber != null ? `🔹 *Slot:* #${data.slotNumber} (${data.group || ""})\n` : "";
+  const groupLine = data.slotNumber == null && data.group ? `🔹 *Group:* ${data.group}\n` : "";
+
   return [
     `🎮 *${teamName} — MATCH IS LIVE!*`,
     ``,
     `Dear ${teamName},`,
     `Your match credentials for *${data.tournamentTitle} (${data.map})* are now live:`,
     ``,
-    `🔹 *Room ID:* ${data.roomId}`,
+    `${slotLine}${groupLine}🔹 *Room ID:* ${data.roomId}`,
     `🔹 *Password:* ${data.roomPassword}`,
     `🔹 *Time:* ${dateFormatted} PKT`,
     ``,
