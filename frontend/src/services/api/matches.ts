@@ -78,7 +78,7 @@ export async function updateMatch(
 
 export async function sendMatchCredentials(
   matchId: string,
-): Promise<{ success: boolean; message: string; sent: number; failed: number; total: number }> {
+): Promise<{ success: boolean; message: string; sent: number; failed: number; total: number; waLinks: Array<{ teamName: string; phone: string; link: string }> }> {
   return apiClient(`/matches/${matchId}/send-credentials`, {
     method: "POST",
   });

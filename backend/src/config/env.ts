@@ -22,4 +22,5 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY || "",
   whatsappApiToken: process.env.WHATSAPP_API_TOKEN || "",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+  whatsappApiKey: process.env.WHATSAPP_API_KEY || "",
 };

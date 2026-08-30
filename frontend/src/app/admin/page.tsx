@@ -681,7 +681,18 @@ export default function AdminDashboard() {
       setSendingCredentialsMatchId(matchId);
       try {
         const res = await sendMatchCredentials(matchId);
-        showAlert(res.message || `WhatsApp credentials sent to ${res.sent} teams.`, "success");
+        const waLinks = res.waLinks || [];
+        if (waLinks.length > 0) {
+          const linksHtml = waLinks
+            .map((w) => `<a href="${w.link}" target="_blank" style="display:inline-block;margin:4px 0;padding:8px 16px;background:#25d366;color:white;border-radius:8px;text-decoration:none;font-weight:600;">📱 Send to ${w.teamName}</a>`)
+            .join("<br/>");
+          showAlert(
+            `${res.message}\n\nClick below to send manually via WhatsApp:\n\n${linksHtml}`,
+            "success",
+          );
+        } else {
+          showAlert(res.message || `WhatsApp credentials sent to ${res.sent} teams.`, "success");
+        }
       } catch (err: any) {
         console.error("Failed to send credentials:", err);
         showAlert(err.message || "Failed to send credentials.", "error");

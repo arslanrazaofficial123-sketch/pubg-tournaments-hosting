@@ -1,8 +1,8 @@
 import { env } from "../config/env.js";
 
-const GRAPH_API_URL = "https://graph.facebook.com/v18.0";
+const BLUETICKS_API_URL = "https://api.blueticks.co/v1";
 
-function formatPhoneForWhatsApp(phone: string): string {
+function formatPhone(phone: string): string {
   const digits = phone.replace(/[^0-9]/g, "");
   if (digits.startsWith("92")) return digits;
   if (digits.startsWith("0")) return "92" + digits.substring(1);
@@ -48,47 +48,55 @@ export function buildMatchCredentialsMessage(teamName: string, data: Omit<MatchC
   ].join("\n");
 }
 
-export async function sendWhatsAppMessage(to: string, message: string): Promise<boolean> {
-  if (!env.whatsappApiToken || !env.whatsappPhoneNumberId) {
-    console.error("WhatsApp API not configured (WHATSAPP_API_TOKEN or WHATSAPP_PHONE_NUMBER_ID missing)");
-    return false;
-  }
+export function buildWhatsAppLink(phone: string, message: string): string {
+  const phoneFormatted = formatPhone(phone);
+  return `https://wa.me/${phoneFormatted}?text=${encodeURIComponent(message)}`;
+}
 
-  const phone = formatPhoneForWhatsApp(to);
+async function sendViaBlueticks(to: string, message: string): Promise<boolean> {
+  if (!env.whatsappApiKey) return false;
+
+  const phone = formatPhone(to);
 
   try {
-    const res = await fetch(`${GRAPH_API_URL}/${env.whatsappPhoneNumberId}/messages`, {
+    const res = await fetch(`${BLUETICKS_API_URL}/messages/${phone}@c.us`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.whatsappApiToken}`,
+        Authorization: `Bearer ${env.whatsappApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: phone,
         type: "text",
-        text: { body: message },
+        text: message,
       }),
     });
 
     if (!res.ok) {
       const body = await res.text();
-      console.error("WhatsApp API error:", res.status, body);
+      console.error("Blueticks API error:", res.status, body);
       return false;
     }
 
     return true;
   } catch (err) {
-    console.error("Failed to send WhatsApp message:", err);
+    console.error("Failed to send via Blueticks:", err);
     return false;
   }
 }
 
+export interface SendResult {
+  sent: number;
+  failed: number;
+  total: number;
+  waLinks: Array<{ teamName: string; phone: string; link: string }>;
+}
+
 export async function sendMatchCredentialsWhatsApp(
   registrations: MatchCredentialsPayload[],
-): Promise<{ sent: number; failed: number; total: number }> {
+): Promise<SendResult> {
   let sent = 0;
   let failed = 0;
+  const waLinks: Array<{ teamName: string; phone: string; link: string }> = [];
 
   for (const reg of registrations) {
     if (!reg.whatsappNumber) {
@@ -106,10 +114,22 @@ export async function sendMatchCredentialsWhatsApp(
       matchDate: reg.matchDate,
     });
 
-    const ok = await sendWhatsAppMessage(reg.whatsappNumber, message);
+    let ok = false;
+    if (env.whatsappApiKey) {
+      ok = await sendViaBlueticks(reg.whatsappNumber, message);
+    }
+
+    if (!ok) {
+      waLinks.push({
+        teamName: reg.teamName,
+        phone: reg.whatsappNumber,
+        link: buildWhatsAppLink(reg.whatsappNumber, message),
+      });
+    }
+
     if (ok) sent++;
     else failed++;
   }
 
-  return { sent, failed, total: registrations.length };
+  return { sent, failed, total: registrations.length, waLinks };
 }
