@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs";
 import path from "path";
 import { env } from "./config/env.js";
 import routes from "./routes/index.js";
@@ -21,7 +22,10 @@ export function createApp() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-  app.use("/images", express.static(path.join("D:\\epix-images")));
+  const imagesDir = process.env.IMAGES_DIR || "D:\\epix-images";
+  if (fs.existsSync(imagesDir)) {
+    app.use("/images", express.static(imagesDir));
+  }
 
   app.use("/api", routes);
 
