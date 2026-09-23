@@ -1,19 +1,39 @@
-# Team Registrations JSON Export — Design
+# Team Registrations ZIP Export — Design
 
 ## Goal
-Let admin/partner download tournament registration data as a JSON file containing team name, team logo URL, and each member's uid + in-game name + picture URL.
+Let admin/partner download tournament registration data as a **ZIP folder** containing:
+1. `registrations.json` — structured team + member data
+2. Downloaded **team logos** and **member pictures** (from Cloudinary URLs)
 
 ## Scope
 - Export **registrations only** (not user team profiles from `/player-photos`).
-- Format: **JSON only** (no CSV).
-- Saved location: browser **Downloads** folder (e.g. `C:\Users\<user>\Downloads\registrations-export.json`).
+- Format: **ZIP** containing JSON + images.
+- Saved location: browser **Downloads** folder (e.g. `C:\Users\<user>\Downloads\registrations-export.zip`).
 
-## Data shape
+## ZIP structure
+```
+registrations-export/
+  registrations.json
+  <safe-team-name>/
+    team-logo.png
+    <uid>-<safe-ingamename>.png
+    <uid>-<safe-ingamename>.png
+    ...
+  <safe-team-name>/
+    ...
+```
+
+- Team folder name: sanitized `teamName` (or `team-<registrationId>` if missing)
+- Image filenames: sanitized from uid + inGameName; extension from URL/content-type
+- If logo/picture URL is missing or download fails: skip that file (JSON still has the URL field)
+
+## JSON shape
 ```json
 [
   {
     "teamName": "FURIOUS4T7",
-    "teamLogo": "https://res.cloudinary.com/rwso5oo6/.../logo.png",
+    "teamLogo": "https://res.cloudinary.com/.../logo.png",
+    "teamLogoFile": "FURIOUS4T7/team-logo.png",
     "group": "Group A",
     "status": "pending",
     "whatsapp": "0309...",
@@ -22,61 +42,67 @@ Let admin/partner download tournament registration data as a JSON file containin
       {
         "uid": "52116569921",
         "inGameName": "Player1",
-        "picture": "https://res.cloudinary.com/rwso5oo6/.../pic.png"
+        "picture": "https://res.cloudinary.com/.../pic.png",
+        "pictureFile": "FURIOUS4T7/52116569921-Player1.png"
       }
     ]
   }
 ]
 ```
 
-`picture` and `teamLogo` are Cloudinary `secure_url` values (or empty/undefined if never uploaded). Each picture is paired with its member's `uid` inside the `members` array.
+- `teamLogo` / `picture`: original Cloudinary URL (or empty)
+- `teamLogoFile` / `pictureFile`: relative path inside ZIP when image was included; omit if not downloaded
 
 ## Architecture
 
 ### Backend
 - New route: `GET /api/tournaments/registrations/export`
-- Guard: `requireStaff` (same as other registration mutations)
+- Guard: `requireStaff` (admin or partner)
 - Optional query: `?tournamentId=t-xxx` to export one tournament; omit = all registrations
-- Handler reuses existing `getAllRegistrations(tournamentId, memberUid)` from `tournamentService`
-- Response headers:
-  - `Content-Type: application/json`
-  - `Content-Disposition: attachment; filename="registrations-export.json"`
-- Body: raw JSON array (not wrapped in `{ data: ... }`)
-
-Route order: must be registered **before** `GET /:id` so Express does not treat `export` as a tournament id. Place it with the other `/registrations` routes (already before `/:id`).
+- Flow:
+  1. Reuse `getAllRegistrations(tournamentId)` from `tournamentService`
+  2. Build in-memory ZIP (use `archiver` npm package — add dependency)
+  3. For each registration: append JSON entry; fetch `teamLogo` + each `picture` URL and append image buffers into team folder
+  4. Stream ZIP with headers:
+     - `Content-Type: application/zip`
+     - `Content-Disposition: attachment; filename="registrations-export.zip"`
+- Image fetch: Node `fetch` with timeout (~10s); on failure skip image, keep URL in JSON
+- Route order: register with other `/registrations` routes (before `GET /:id`)
 
 ### Frontend (Admin → Registrations tab)
-- Add **"Export JSON"** button in the Registrations List header (next to team count badge)
+- **"Export ZIP"** button in Registrations List header (next to team count badge)
 - On click:
-  1. Build URL: `/tournaments/registrations/export` or `...export?tournamentId=<active>`
-  2. Fetch with existing auth headers (admin/partner token from sessionStorage — same pattern as `apiClient`)
-  3. Create blob, `URL.createObjectURL`, trigger `<a download>` click
-  4. Filename: `registrations-export.json` or `registrations-<tournamentId>.json`
-- Button state: show brief loading/disabled while fetching
-- Errors: show existing admin alert on failure
+  1. Fetch `/tournaments/registrations/export` or `...?tournamentId=<active>` with auth headers (same as `apiClient` / admin_token pattern)
+  2. Response → blob → `URL.createObjectURL` → `<a download>` click
+  3. Filename: `registrations-export.zip` or `registrations-<tournamentId>.zip`
+- Loading/disabled while exporting (image downloads can take a few seconds)
+- Errors: existing admin alert
 
 ## Components
 | Layer | File | Change |
 |-------|------|--------|
-| Route | `backend/src/routes/tournamentRoutes.ts` | Add `GET /registrations/export` with `requireStaff` |
-| Controller | `backend/src/controllers/tournamentController.ts` | Add `exportRegistrations` handler |
+| Route | `backend/src/routes/tournamentRoutes.ts` | `GET /registrations/export` + `requireStaff` |
+| Controller | `backend/src/controllers/tournamentController.ts` | `exportRegistrations` — build ZIP stream |
 | Service | none | Reuse `getAllRegistrations` |
-| Frontend API | `frontend/src/services/api/tournaments.ts` | Add `exportRegistrations()` returning Blob |
+| Deps | `backend/package.json` | Add `archiver` (+ `@types/archiver` if needed) |
+| Frontend API | `frontend/src/services/api/tournaments.ts` | `exportRegistrations(): Promise<Blob>` |
 | Admin UI | `frontend/src/app/admin/page.tsx` | Export button + download handler |
 
 ## Error handling
-- No registrations → export empty array `[]` (valid JSON), not an error
-- Auth failure → 401 from existing middleware; frontend shows alert
+- No registrations → valid ZIP with `registrations.json` containing `[]` (and no team folders)
+- Image URL missing/fetch fail → skip file, keep URL in JSON
+- Auth failure → 401; frontend alert
 - Network failure → frontend catch → admin alert
 
 ## Testing
-1. `npx tsc --noEmit` in backend and frontend
-2. Manual: admin login → Registrations → Export JSON → file downloads
-3. Verify JSON opens and each member has `uid` + `picture` (Cloudinary URL when present)
-4. Export with `tournamentId` filter → only that tournament's teams
-5. Non-staff token → 401
+1. `npx tsc --noEmit` backend + frontend
+2. Admin → Registrations → Export ZIP → downloads
+3. Unzip: verify `registrations.json` + team folders with logo/member images
+4. Each member row has `uid`, `inGameName`, `picture` URL, and `pictureFile` when image present
+5. Filter by `tournamentId` → only that tournament
+6. Non-staff token → 401
 
 ## Out of scope
 - CSV format
 - Exporting `users.teamData` profiles
-- Image binary download (only URLs included)
+- Progressive/streaming progress UI beyond button loading state
