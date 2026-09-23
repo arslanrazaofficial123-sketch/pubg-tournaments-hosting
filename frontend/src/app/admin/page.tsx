@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, type Registration } from "@/services/api/tournaments";
+import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, exportRegistrations, type Registration } from "@/services/api/tournaments";
 import { fetchMatches, createMatch, deleteMatch, updateMatch, sendMatchCredentials } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
@@ -133,6 +133,7 @@ export default function AdminDashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   const [activeRegTournamentId, setActiveRegTournamentId] = useState<string | null>(null);
   const [activeGroupTournamentId, setActiveGroupTournamentId] = useState<string | null>(null);
   const [activeMatchTournamentId, setActiveMatchTournamentId] = useState<string | null>(null);
@@ -678,6 +679,30 @@ export default function AdminDashboard() {
         setNotifyingTournamentId(null);
       }
     });
+  };
+
+  const handleExportZip = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const blob = await exportRegistrations(activeRegTournamentId || undefined);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = activeRegTournamentId
+        ? `registrations-${activeRegTournamentId}.zip`
+        : "registrations-export.zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showAlert("Export downloaded.", "success");
+    } catch (err: any) {
+      console.error("Export failed:", err);
+      showAlert(err.message || "Failed to export registrations.", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSendCredentials = async (matchId: string, matchTitle: string) => {
@@ -1927,9 +1952,19 @@ export default function AdminDashboard() {
                         Viewing registered teams and solo players for the selected tournament
                       </p>
                     </div>
-                    <span className="px-3 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
-                      {selectedTournRegistrations.length} Teams/Players
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="px-3 py-1 rounded-lg bg-white/5 border border-border text-xs font-semibold text-text-primary/60">
+                        {selectedTournRegistrations.length} Teams/Players
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleExportZip}
+                        disabled={isExporting}
+                        className="px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/40 text-accent text-xs font-semibold hover:bg-accent/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {isExporting ? "Exporting…" : "Export ZIP"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="overflow-x-auto admin-table">
