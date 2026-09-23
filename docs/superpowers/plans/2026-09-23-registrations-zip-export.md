@@ -31,7 +31,7 @@
 **Interfaces:**
 - Produces: `archiver` available for `import archiver from "archiver"` in Task 2.
 
-- [ ] **Step 1: Install archiver**
+- [x] **Step 1: Install archiver**
 
 Run from repo root (PowerShell):
 
@@ -49,7 +49,7 @@ npm install archiver
 npm install -D @types/archiver
 ```
 
-- [ ] **Step 2: Verify package.json**
+- [x] **Step 2: Verify package.json**
 
 Expected in `backend/package.json` dependencies:
 
@@ -65,7 +65,7 @@ and in devDependencies (or dependencies if types land there):
 
 (Exact semver may differ slightly; package must be present.)
 
-- [ ] **Step 3: Typecheck still passes**
+- [x] **Step 3: Typecheck still passes**
 
 Run:
 
@@ -76,7 +76,7 @@ npx tsc --noEmit
 
 Expected: no errors (archiver not imported yet).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master"
@@ -101,7 +101,7 @@ If `backend/package-lock.json` exists and changed, add it too. Do not stage othe
 - Produces: `GET /api/tournaments/registrations/export` → `200` `application/zip` body; optional `?tournamentId=`.
 - Produces: named export `exportRegistrations` from controller module.
 
-- [ ] **Step 1: Add controller handler**
+- [x] **Step 1: Add controller handler**
 
 Append to `backend/src/controllers/tournamentController.ts` (after existing exports; add imports at top as needed):
 
@@ -267,7 +267,7 @@ import type { Request, Response } from "express";
 
 (`Request` already imported; extend the existing import line to include `Response` if not present. `asyncHandler`, `getAllRegistrations` already imported.)
 
-- [ ] **Step 2: Add route**
+- [x] **Step 2: Add route**
 
 In `backend/src/routes/tournamentRoutes.ts`, import `exportRegistrations` and insert **before** `router.get("/:id", getTournamentById)`:
 
@@ -306,7 +306,7 @@ router.put("/registrations/:id/status", requireStaff, updateRegStatus);
 router.get("/:id", getTournamentById);
 ```
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master\backend"
@@ -315,7 +315,7 @@ npx tsc --noEmit
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master"
@@ -334,7 +334,7 @@ git commit -m "feat(backend): ZIP export of registrations with team images"
 **Interfaces:**
 - Consumes: Task 2 route on production `https://api.epixesports.com`.
 
-- [ ] **Step 1: Deploy**
+- [x] **Step 1: Deploy**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master\backend"
@@ -344,7 +344,7 @@ if ($?) { npx vercel --prod --yes }
 
 Expected: aliased to `https://api.epixesports.com`.
 
-- [ ] **Step 2: Unauthenticated → 401**
+- [x] **Step 2: Unauthenticated → 401**
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -358,7 +358,7 @@ try {
 
 Expected: `401`.
 
-- [ ] **Step 3: Authenticated export → ZIP bytes**
+- [x] **Step 3: Authenticated export → ZIP bytes**
 
 ```powershell
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -384,7 +384,7 @@ $zip.Dispose()
 
 Expected: ZIP contains `registrations-export/registrations.json` and team folders with images (when Cloudinary URLs exist). Non-staff token → `403`.
 
-- [ ] **Step 4: No code commit** (deploy only)
+- [x] **Step 4: No code commit** (deploy only)
 
 ---
 
@@ -398,7 +398,7 @@ Expected: ZIP contains `registrations-export/registrations.json` and team folder
 
 **Produces:** `exportRegistrations(tournamentId?: string): Promise<Blob>` in `@/services/api/tournaments`.
 
-- [ ] **Step 1: Add function to `frontend/src/services/api/tournaments.ts`**
+- [x] **Step 1: Add function to `frontend/src/services/api/tournaments.ts`**
 
 Append:
 
@@ -447,7 +447,7 @@ export async function exportRegistrations(tournamentId?: string): Promise<Blob> 
 }
 ```
 
-- [ ] **Step 2: Typecheck frontend**
+- [x] **Step 2: Typecheck frontend**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master\frontend"
@@ -456,7 +456,7 @@ npx tsc --noEmit
 
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master"
@@ -482,7 +482,7 @@ git commit -m "feat(frontend): exportRegistrations ZIP download helper"
 - Consumes: `activeRegTournamentId` state (already exists).
 - Produces: button with text `Export ZIP`; download file `registrations-<id>.zip` or `registrations-export.zip`.
 
-- [ ] **Step 1: Extend import**
+- [x] **Step 1: Extend import**
 
 Change line 5 import from `@/services/api/tournaments` to include `exportRegistrations`:
 
@@ -490,7 +490,7 @@ Change line 5 import from `@/services/api/tournaments` to include `exportRegistr
 import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, exportRegistrations, type Registration } from "@/services/api/tournaments";
 ```
 
-- [ ] **Step 2: Add state + handler**
+- [x] **Step 2: Add state + handler**
 
 After existing state declarations (e.g. near `const [registrations, setRegistrations] = useState<Registration[]>([]);`):
 
@@ -528,7 +528,7 @@ const handleExportZip = async () => {
 
 Verify `activeRegTournamentId` exists in scope (it does — used for tab selection). If export should always include **all** registrations regardless of tab filter, call `exportRegistrations()` with no args; **per design, pass active tournament id** for scoped export.
 
-- [ ] **Step 3: Add button in header**
+- [x] **Step 3: Add button in header**
 
 In the Registrations List card header, next to the count badge (~line 1923):
 
@@ -566,7 +566,7 @@ Replace the right-side wrapper to hold badge + button:
 </div>
 ```
 
-- [ ] **Step 4: Typecheck + lint**
+- [x] **Step 4: Typecheck + lint**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master\frontend"
@@ -576,7 +576,7 @@ npm run lint
 
 Expected: PASS (lint may warn on pre-existing issues in this large file — no new errors).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master"
@@ -595,7 +595,7 @@ git commit -m "feat(admin): Export ZIP button for registrations"
 **Interfaces:**
 - Consumes: Tasks 1–5.
 
-- [ ] **Step 1: Push + deploy frontend**
+- [x] **Step 1: Push + deploy frontend**
 
 If frontend is on Vercel Git integration, push master. Otherwise:
 
@@ -607,7 +607,7 @@ cd frontend
 npx vercel --prod --yes
 ```
 
-- [ ] **Step 2: Manual UI check**
+- [x] **Step 2: Manual UI check**
 
 1. Open `https://www.epixesports.com/admin`
 2. Log in as admin
@@ -616,7 +616,7 @@ npx vercel --prod --yes
 5. Browser downloads `registrations-<id>.zip` to Downloads
 6. Unzip: confirm `registrations.json` + `registrations-export/<Team>/` images (or JSON-only if no image URLs)
 
-- [ ] **Step 3: Final status**
+- [x] **Step 3: Final status**
 
 ```powershell
 cd "D:\Projects\Default Project\pubg-tournaments\PUBG-Tournaments-Hosting-master"
