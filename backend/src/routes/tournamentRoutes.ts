@@ -7,6 +7,7 @@ import {
   updateTournament,
   registerTournament,
   getRegistrations,
+  exportRegistrations,
   updateRegStatus,
   deleteRegistration,
   updateRegStats,
@@ -18,6 +19,7 @@ import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
 const router = Router();
 
 router.get("/", getTournaments);
+router.get("/registrations/export", requireStaff, exportRegistrations);
 router.get("/registrations", requireAuth, getRegistrations);
 router.put("/registrations/:id/status", requireStaff, updateRegStatus);
 router.put("/registrations/:id/stats", requireStaff, updateRegStats);

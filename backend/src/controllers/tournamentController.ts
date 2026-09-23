@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import archiver from "archiver";
 import { isValidStatus } from "../data/seedTournaments.js";
 import type { AuthenticatedRequest } from "../middleware/auth.js";
 import {
@@ -250,4 +251,136 @@ export const notifyTournament = asyncHandler(async (req: Request, res: Response)
     total: users.length,
   });
 });
+
+function sanitizePathSegment(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "team";
+}
+
+function extFromUrlOrType(url: string, contentType: string | null): string {
+  const fromCt = (contentType || "").split(";")[0].trim();
+  const ctMap: Record<string, string> = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+    "image/svg+xml": ".svg",
+  };
+  if (fromCt && ctMap[fromCt]) return ctMap[fromCt];
+  try {
+    const pathname = new URL(url).pathname;
+    const m = pathname.match(/\.(png|jpe?g|webp|gif|svg)$/i);
+    if (m) return m[1].toLowerCase() === "jpeg" ? ".jpg" : m[1].toLowerCase();
+  } catch {
+    /* ignore */
+  }
+  return ".png";
+}
+
+async function fetchImageBuffer(
+  url: string,
+): Promise<{ buffer: Buffer; ext: string } | null> {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    return { buffer: buf, ext: extFromUrlOrType(url, res.headers.get("content-type")) };
+  } catch {
+    return null;
+  }
+}
+
+export const exportRegistrations = asyncHandler(
+  async (req: Request, res: Response) => {
+    const tournamentId = req.query.tournamentId
+      ? String(req.query.tournamentId)
+      : undefined;
+    const regs = await getAllRegistrations(tournamentId);
+
+    const filename = tournamentId
+      ? `registrations-${tournamentId}.zip`
+      : "registrations-export.zip";
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${filename}"`,
+    );
+
+    const archive = archiver("zip", { zlib: { level: 6 } });
+    archive.on("error", (err) => {
+      if (!res.headersSent) {
+        res.status(500).json({ message: err.message });
+      } else {
+        res.destroy(err);
+      }
+    });
+    archive.pipe(res);
+
+    const jsonEntries: any[] = [];
+    const usedFolders = new Set<string>();
+
+    for (const reg of regs) {
+      const hasTeamName = Boolean(reg.teamName && sanitizePathSegment(reg.teamName) !== "team");
+      const baseTeam = hasTeamName
+        ? sanitizePathSegment(reg.teamName)
+        : `team-${sanitizePathSegment(reg.id || "unknown")}`;
+      let folder = baseTeam;
+      let n = 2;
+      while (usedFolders.has(folder)) {
+        folder = `${baseTeam}-${n++}`;
+      }
+      usedFolders.add(folder);
+
+      const entry: any = {
+        teamName: reg.teamName || "",
+        teamLogo: reg.teamLogo || "",
+        group: reg.group || "",
+        status: reg.status || "",
+        whatsapp: reg.whatsapp || "",
+        tournamentId: reg.tournamentId || "",
+        members: [],
+      };
+
+      if (reg.teamLogo) {
+        const img = await fetchImageBuffer(reg.teamLogo);
+        if (img) {
+          const zipPath = `registrations-export/${folder}/team-logo${img.ext}`;
+          archive.append(img.buffer, { name: zipPath });
+          entry.teamLogoFile = `${folder}/team-logo${img.ext}`;
+        }
+      }
+
+      for (const m of reg.members || []) {
+        const member: any = {
+          uid: m.uid || "",
+          inGameName: m.inGameName || "",
+          picture: m.picture || "",
+        };
+        if (m.picture) {
+          const img = await fetchImageBuffer(m.picture);
+          if (img) {
+            const safeName = sanitizePathSegment(m.inGameName || "player");
+            const safeUid = sanitizePathSegment(m.uid || "uid");
+            const zipPath = `registrations-export/${folder}/${safeUid}-${safeName}${img.ext}`;
+            archive.append(img.buffer, { name: zipPath });
+            member.pictureFile = `${folder}/${safeUid}-${safeName}${img.ext}`;
+          }
+        }
+        entry.members.push(member);
+      }
+
+      jsonEntries.push(entry);
+    }
+
+    archive.append(JSON.stringify(jsonEntries, null, 2), {
+      name: "registrations-export/registrations.json",
+    });
+    await archive.finalize();
+  },
+);
 
