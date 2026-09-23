@@ -159,3 +159,46 @@ export async function updateRegistrationSlot(
     body: JSON.stringify({ slotNumber }),
   });
 }
+
+export async function exportRegistrations(tournamentId?: string): Promise<Blob> {
+  const base =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== "undefined"
+      ? `http://${window.location.hostname}:5000/api`
+      : "http://localhost:5000/api");
+
+  const qs = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : "";
+  const headers: Record<string, string> = {};
+
+  if (typeof window !== "undefined") {
+    const adminToken = sessionStorage.getItem("admin_token");
+    if (adminToken) {
+      headers["Authorization"] = `Bearer ${adminToken}`;
+    } else {
+      const session = sessionStorage.getItem("epix_session_user");
+      if (session) {
+        try {
+          const parsed = JSON.parse(session);
+          if (parsed.token) headers["Authorization"] = `Bearer ${parsed.token}`;
+        } catch {}
+      }
+    }
+  }
+
+  const response = await fetch(`${base}/tournaments/registrations/export${qs}`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const body = (await response.json()) as { message?: string };
+      if (body.message) message = body.message;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(message || "Export failed");
+  }
+
+  return response.blob();
+}
