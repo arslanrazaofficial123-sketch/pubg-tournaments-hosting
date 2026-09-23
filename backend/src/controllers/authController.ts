@@ -394,8 +394,9 @@ export async function uploadAvatarHandler(req: AuthenticatedRequest, res: Respon
       dataUrl,
     });
     res.json({ avatarUrl });
-  } catch {
-    res.status(502).json({ message: "Picture storage is temporarily unavailable." });
+  } catch (err: any) {
+    console.error("Avatar upload failed:", err?.message, err?.http_code, JSON.stringify(err));
+    res.status(502).json({ message: "Picture storage is temporarily unavailable.", detail: err?.message });
   }
 }
 

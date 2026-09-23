@@ -242,6 +242,20 @@ export async function registerPlayerForTournament(
     );
   }
 
+  let receiptImageUrl = payload.receiptImage;
+  if (payload.receiptImage && String(payload.receiptImage).startsWith("data:")) {
+    try {
+      receiptImageUrl = await uploadImage({
+        kind: "receipt",
+        teamName: payload.teamName,
+        uid: payload.registrarUid || payload.members[0]?.uid,
+        dataUrl: payload.receiptImage,
+      });
+    } catch {
+      receiptImageUrl = payload.receiptImage;
+    }
+  }
+
   const registration = await RegistrationModel.create({
     id,
     tournamentId,
@@ -249,7 +263,7 @@ export async function registerPlayerForTournament(
     teamLogo: teamLogoUrl,
     group: assignedGroup,
     whatsapp: payload.whatsapp,
-    receiptImage: payload.receiptImage,
+    receiptImage: receiptImageUrl,
     transactionId: payload.transactionId,
     paymentMethod,
     entryFee,

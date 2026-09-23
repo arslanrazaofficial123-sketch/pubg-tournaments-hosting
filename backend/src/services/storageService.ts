@@ -1,84 +1,50 @@
-import fs from "fs";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 import { env } from "../config/env.js";
 
-const LOCAL_IMAGE_DIR = "D:\\epix-images";
+cloudinary.config({
+  cloud_name: env.cloudinaryCloudName,
+  api_key: env.cloudinaryApiKey,
+  api_secret: env.cloudinaryApiSecret,
+});
 
 export interface UploadImageParams {
-  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof";
+  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof" | "receipt";
   uid?: string;
   teamName?: string;
   dataUrl: string;
-}
-
-function ensureDir(dir: string): void {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
 }
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80);
 }
 
-function dataUrlToBuffer(dataUrl: string): { buffer: Buffer; ext: string } {
-  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-  if (!match) throw new Error("Invalid data URL");
-  const ext = match[1] === "jpeg" ? "jpg" : match[1];
-  return { buffer: Buffer.from(match[2], "base64"), ext };
-}
-
-function saveLocally(subdir: string, filename: string, dataUrl: string): string {
-  const dir = path.join(LOCAL_IMAGE_DIR, subdir);
-  ensureDir(dir);
-  const { buffer, ext } = dataUrlToBuffer(dataUrl);
-  const safeName = sanitizeFilename(filename) + "." + ext;
-  const filePath = path.join(dir, safeName);
-  fs.writeFileSync(filePath, buffer);
-  return `/images/${subdir}/${safeName}`;
-}
+const FOLDER_MAP: Record<string, string> = {
+  avatar: "epix/avatars",
+  "team-logo": "epix/team-logos",
+  "player-picture": "epix/player-pictures",
+  "wallet-proof": "epix/wallet-proofs",
+  receipt: "epix/receipts",
+};
 
 export async function uploadImage(params: UploadImageParams): Promise<string> {
   const { kind, uid, teamName, dataUrl } = params;
 
-  if (kind === "team-logo") {
-    const name = sanitizeFilename(teamName || uid || "logo");
-    return saveLocally("team-logos", name, dataUrl);
-  }
+  const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!match) throw new Error("Invalid data URL");
 
-  if (kind === "player-picture") {
-    const name = sanitizeFilename(uid || "player");
-    return saveLocally("player-pictures", name, dataUrl);
-  }
+  const folder = FOLDER_MAP[kind] || "epix/misc";
+  const baseName = sanitizeFilename(
+    kind === "team-logo" ? teamName || uid || "logo"
+    : kind === "wallet-proof" ? `${uid || "proof"}-${Date.now()}`
+    : uid || kind
+  );
 
-  if (kind === "avatar") {
-    const name = sanitizeFilename(uid || "avatar");
-    return saveLocally("avatars", name, dataUrl);
-  }
+  const result = await cloudinary.uploader.upload(dataUrl, {
+    folder,
+    public_id: baseName,
+    overwrite: true,
+    resource_type: "image",
+  });
 
-  if (kind === "wallet-proof") {
-    const name = sanitizeFilename(uid || "proof") + "-" + Date.now();
-    return saveLocally("wallet-proofs", name, dataUrl);
-  }
-
-  try {
-    const response = await fetch(`${env.filesBaseUrl}/api/upload`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-files-token": env.filesToken,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      throw new Error("FILE_STORE_FAILED");
-    }
-
-    const body = (await response.json()) as { url: string };
-    return `${env.filesBaseUrl}${body.url}`;
-  } catch {
-    const name = sanitizeFilename(uid || kind);
-    return saveLocally("misc", name, dataUrl);
-  }
+  return result.secure_url;
 }
