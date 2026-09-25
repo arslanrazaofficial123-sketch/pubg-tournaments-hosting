@@ -62,7 +62,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const sessionUser = getSessionUser();
     if (!checkLoggedIn() || !sessionUser) {
-      router.push("/");
+      router.push("/login");
       return;
     }
     setUser(sessionUser);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,7 @@ export function useAlert() {
 export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
+  const confirmBusyRef = useRef(false);
 
   const showAlert = useCallback((message: string, type: ToastType = "info") => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -48,11 +49,13 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showConfirm = useCallback((message: string, onConfirm: () => void, onCancel?: () => void) => {
+    confirmBusyRef.current = false;
     setConfirm({ message, onConfirm, onCancel });
   }, []);
 
   const handleConfirmAction = () => {
-    if (confirm) {
+    if (confirm && !confirmBusyRef.current) {
+      confirmBusyRef.current = true;
       confirm.onConfirm();
       setConfirm(null);
     }

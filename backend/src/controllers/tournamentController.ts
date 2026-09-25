@@ -19,6 +19,7 @@ import {
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { sendRegistrationNotificationEmail, sendTournamentNotificationEmail, type TournamentNotificationData } from "../utils/email.js";
 import { UserModel } from "../models/User.js";
+import { TournamentModel } from "../models/Tournament.js";
 
 // ... [existing functions remain unchanged]
 
@@ -209,6 +210,20 @@ export const notifyTournament = asyncHandler(async (req: Request, res: Response)
     return;
   }
 
+  const NOTIFY_COOLDOWN_MS = 60 * 60 * 1000;
+  const doc = await TournamentModel.findOne({ id }).select("lastNotifiedAt").lean();
+  const lastNotifiedAt = doc?.lastNotifiedAt ? new Date(doc.lastNotifiedAt) : null;
+
+  if (lastNotifiedAt && Date.now() - lastNotifiedAt.getTime() < NOTIFY_COOLDOWN_MS) {
+    const minutesLeft = Math.ceil(
+      (NOTIFY_COOLDOWN_MS - (Date.now() - lastNotifiedAt.getTime())) / 60000,
+    );
+    res.status(429).json({
+      message: `Notifications for this tournament were already sent. Please wait ${minutesLeft} minute(s) before resending.`,
+    });
+    return;
+  }
+
   const users = await UserModel.find({ email: { $exists: true, $ne: "" } }).select("email inGameName").lean();
 
   if (users.length === 0) {
@@ -229,6 +244,8 @@ export const notifyTournament = asyncHandler(async (req: Request, res: Response)
     bannerUrl: tournament.images?.card,
   };
 
+  await TournamentModel.updateOne({ id }, { $set: { lastNotifiedAt: new Date() } });
+
   let sent = 0;
   let failed = 0;
 
@@ -241,6 +258,10 @@ export const notifyTournament = asyncHandler(async (req: Request, res: Response)
     } catch {
       failed++;
     }
+  }
+
+  if (sent === 0) {
+    await TournamentModel.updateOne({ id }, { $unset: { lastNotifiedAt: 1 } });
   }
 
   res.json({

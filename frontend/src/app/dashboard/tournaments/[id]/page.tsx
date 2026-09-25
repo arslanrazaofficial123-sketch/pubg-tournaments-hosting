@@ -128,7 +128,7 @@ export default function TournamentTeamPage() {
   useEffect(() => {
     const sessionUser = getSessionUser();
     if (!checkLoggedIn() || !sessionUser) {
-      router.push("/link-uid");
+      router.push("/login");
       return;
     }
     const userUid = sessionUser.uid;

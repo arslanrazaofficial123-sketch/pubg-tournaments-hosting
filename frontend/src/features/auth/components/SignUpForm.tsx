@@ -107,11 +107,8 @@ export function SignUpForm({ onSuccess, onToggleView, isModal = false }: SignUpF
       });
 
       setSession(user);
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.push("/dashboard");
-      }
+      onSuccess?.();
+      router.push("/dashboard");
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const msg = error.message.toLowerCase();

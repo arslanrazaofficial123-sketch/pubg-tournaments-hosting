@@ -30,7 +30,7 @@ export function TournamentModal({
 
   const handleRegisterClick = () => {
     if (!isLoggedIn()) {
-      router.push("/link-uid");
+      router.push("/login");
       return;
     }
     setIsRegisterOpen(true);

@@ -77,7 +77,7 @@ export default function OrderHistoryPage() {
 
   useEffect(() => {
     if (!isLoggedIn()) {
-      router.push("/shop");
+      router.push("/login");
       return;
     }
     setAuthChecked(true);

@@ -32,6 +32,7 @@ const tournamentSchema = new Schema(
     teamsPerGroup: { type: Number, required: true },
     tournamentId: { type: String, required: true },
     images: { type: tournamentImagesSchema, required: true },
+    lastNotifiedAt: { type: Date },
   },
   { timestamps: true },
 );

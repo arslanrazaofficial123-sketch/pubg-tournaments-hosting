@@ -37,11 +37,8 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
     try {
       const user = await googleSignIn(credential);
       setSession(user);
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.push("/dashboard");
-      }
+      onSuccess?.();
+      router.push("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setSubmitError(error.message);
@@ -70,11 +67,8 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
     try {
       const user = await loginAccount({ uid: uid.trim(), password });
       setSession(user);
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        router.push("/dashboard");
-      }
+      onSuccess?.();
+      router.push("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setSubmitError(error.message);

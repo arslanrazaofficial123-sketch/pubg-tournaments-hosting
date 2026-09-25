@@ -3,7 +3,7 @@ import type {
   RegisterPayload,
   UserProfile,
 } from "@/types/auth";
-import { apiClient } from "./client";
+import { ApiError, apiClient } from "./client";
 
 export async function registerAccount(
   payload: RegisterPayload,
@@ -60,8 +60,11 @@ export async function lookupPlayerByUid(
 export async function fetchUserByUid(uid: string): Promise<UserProfile | null> {
   try {
     return await apiClient<UserProfile>(`/auth/users/${encodeURIComponent(uid)}`);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 

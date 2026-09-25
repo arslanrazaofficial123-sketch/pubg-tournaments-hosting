@@ -94,7 +94,7 @@ export default function TeamDataPage() {
   useEffect(() => {
     const loggedIn = isLoggedIn();
     if (!loggedIn) {
-      router.push("/link-uid");
+      router.push("/login");
       return;
     }
     loadTeamData();
