@@ -1,11 +1,13 @@
 import crypto from "crypto";
 import type { Request, Response } from "express";
+import archiver from "archiver";
 import { env } from "../config/env.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { ProductionTeamModel } from "../models/ProductionTeam.js";
 import { TournamentModel } from "../models/Tournament.js";
 import { uploadImage } from "../services/storageService.js";
 import { signToken } from "../utils/jwt.js";
+import { fetchImageBuffer, sanitizePathSegment } from "../utils/imageFetch.js";
 
 const MAX_PLAYERS = 16;
 
@@ -110,4 +112,85 @@ export const listProductionTeams = asyncHandler(async (req: Request, res: Respon
     .sort({ createdAt: -1 })
     .lean();
   res.json(teams);
+});
+
+function csvField(value: string): string {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+export const exportProductionRoster = asyncHandler(async (req: Request, res: Response) => {
+  const tournamentId = req.query.id ? String(req.query.id) : "";
+  if (!tournamentId) {
+    res.status(400).json({ message: "Tournament id is required" });
+    return;
+  }
+
+  const teams = await ProductionTeamModel.find({ tournamentId }).lean();
+  if (teams.length === 0) {
+    res.status(404).json({ message: "No teams to export" });
+    return;
+  }
+
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="production-${tournamentId}.zip"`,
+  );
+
+  const archive = archiver("zip", { zlib: { level: 6 } });
+  archive.on("error", (err) => {
+    if (!res.headersSent) {
+      res.status(500).json({ message: err.message });
+    } else {
+      res.destroy(err);
+    }
+  });
+  archive.pipe(res);
+
+  const csvLines: string[] = ["Team,UID,Photo,Logo"];
+  const usedLogoNames = new Set<string>();
+  const fetchedPlayerExts = new Map<string, string>();
+
+  for (const team of teams) {
+    const logoBase = sanitizePathSegment(team.teamName || "team");
+    let logoName = logoBase;
+    let n = 2;
+    while (usedLogoNames.has(logoName)) {
+      logoName = `${logoBase}-${n++}`;
+    }
+    usedLogoNames.add(logoName);
+
+    let logoExt = ".png";
+    if (team.teamLogo) {
+      const img = await fetchImageBuffer(team.teamLogo);
+      if (img) {
+        logoExt = img.ext;
+        archive.append(img.buffer, { name: `Teams Logos/${logoName}${img.ext}` });
+      }
+    }
+    const logoPath = `Teams Logos/${logoName}${logoExt}`;
+
+    for (const player of team.players || []) {
+      const uid = player.uid || "";
+      let playerExt = fetchedPlayerExts.get(uid);
+      if (playerExt === undefined) {
+        playerExt = ".jpg";
+        if (player.photo) {
+          const img = await fetchImageBuffer(player.photo);
+          if (img) {
+            playerExt = img.ext;
+            archive.append(img.buffer, { name: `Player Pics/${uid}${img.ext}` });
+          }
+        }
+        fetchedPlayerExts.set(uid, playerExt);
+      }
+      const playerPath = `Player Pics/${uid}${playerExt}`;
+      csvLines.push(
+        [csvField(team.teamName || ""), uid, csvField(playerPath), csvField(logoPath)].join(","),
+      );
+    }
+  }
+
+  archive.append(csvLines.join("\n") + "\n", { name: "roster.csv" });
+  await archive.finalize();
 });
