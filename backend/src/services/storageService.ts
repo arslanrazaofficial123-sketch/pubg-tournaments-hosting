@@ -8,7 +8,7 @@ cloudinary.config({
 });
 
 export interface UploadImageParams {
-  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof" | "receipt";
+  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof" | "receipt" | "production-logo" | "production-photo";
   uid?: string;
   teamName?: string;
   dataUrl: string;
@@ -24,6 +24,8 @@ const FOLDER_MAP: Record<string, string> = {
   "player-picture": "epix/player-pictures",
   "wallet-proof": "epix/wallet-proofs",
   receipt: "epix/receipts",
+  "production-logo": "epix/production-logos",
+  "production-photo": "epix/production-photos",
 };
 
 export async function uploadImage(params: UploadImageParams): Promise<string> {
@@ -34,9 +36,11 @@ export async function uploadImage(params: UploadImageParams): Promise<string> {
 
   const folder = FOLDER_MAP[kind] || "epix/misc";
   const baseName = sanitizeFilename(
-    kind === "team-logo" ? teamName || uid || "logo"
-    : kind === "wallet-proof" ? `${uid || "proof"}-${Date.now()}`
-    : uid || kind
+    kind === "team-logo" || kind === "production-logo"
+      ? teamName || uid || "logo"
+      : kind === "wallet-proof"
+        ? `${uid || "proof"}-${Date.now()}`
+        : uid || kind
   );
 
   const result = await cloudinary.uploader.upload(dataUrl, {

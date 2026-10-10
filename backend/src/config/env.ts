@@ -20,6 +20,8 @@ export const env = {
   filesBaseUrl: process.env.FILES_BASE_URL || "http://127.0.0.1:8081",
   filesToken: process.env.FILES_TOKEN || "epix-local-files-token",
   resendApiKey: process.env.RESEND_API_KEY || "",
+  productionUsername: process.env.PRODUCTION_USERNAME || "epixprod",
+  productionPassword: process.env.PRODUCTION_PASSWORD || "epixprod",
   whatsappApiToken: process.env.WHATSAPP_API_TOKEN || "",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
   whatsappApiKey: process.env.WHATSAPP_API_KEY || "",
