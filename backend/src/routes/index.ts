@@ -10,6 +10,7 @@ import walletRoutes from "./walletRoutes.js";
 import shopRoutes from "./shopRoutes.js";
 import dataDeletionRoutes from "./dataDeletionRoutes.js";
 import teamDataRoutes from "./teamDataRoutes.js";
+import productionRoutes from "./productionRoutes.js";
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use("/wallet", walletRoutes);
 router.use("/shop", shopRoutes);
 router.use("/data-deletion", dataDeletionRoutes);
 router.use("/team-data", teamDataRoutes);
+router.use("/production", productionRoutes);
 
 router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });
