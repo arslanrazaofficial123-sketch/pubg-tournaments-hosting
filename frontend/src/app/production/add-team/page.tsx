@@ -3,16 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ApiError, getTournaments } from "@/services/api";
+import { ApiError } from "@/services/api";
 import {
   clearProductionToken,
   createProductionTeam,
+  createProductionTournament,
   downloadProductionRoster,
   listProductionTeams,
+  listProductionTournaments,
   productionToken,
   type ProductionTeam,
+  type ProductionTournament,
 } from "@/services/api/production";
-import type { Tournament } from "@/types/tournament";
 
 const MAX_PLAYERS = 16;
 
@@ -39,7 +41,10 @@ function fileToDataUrl(file: File): Promise<string> {
 export default function ProductionAddTeamPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<ProductionTournament[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newTournamentName, setNewTournamentName] = useState("");
+  const [creating, setCreating] = useState(false);
   const [tournamentId, setTournamentId] = useState("");
   const [teamName, setTeamName] = useState("");
   const [logoDataUrl, setLogoDataUrl] = useState("");
@@ -65,7 +70,7 @@ export default function ProductionAddTeamPage() {
 
   useEffect(() => {
     if (!ready) return;
-    getTournaments()
+    listProductionTournaments()
       .then((list) => {
         setTournaments(list);
         setTournamentId((current) => current || list[0]?.id || "");
@@ -99,6 +104,32 @@ export default function ProductionAddTeamPage() {
       ? `/production/add-team?id=${encodeURIComponent(value)}`
       : "/production/add-team";
     window.history.replaceState(null, "", url);
+  };
+
+  const handleCreateTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTournamentName.trim() || creating) return;
+    setCreating(true);
+    setError("");
+    try {
+      const created = await createProductionTournament(newTournamentName.trim());
+      const list = await listProductionTournaments();
+      setTournaments(list);
+      setTournamentId(created.id);
+      setNewTournamentName("");
+      setShowCreateForm(false);
+      setSavedTeam(null);
+      window.history.replaceState(
+        null,
+        "",
+        `/production/add-team?id=${encodeURIComponent(created.id)}`,
+      );
+      refreshCount(created.id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to create tournament.");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleLogoPick = async (files: FileList | null) => {
@@ -267,21 +298,73 @@ export default function ProductionAddTeamPage() {
         </header>
 
         <div className="mb-6 rounded-2xl border border-border bg-bg-secondary p-4">
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-text-primary/50">
-            Tournament
-          </label>
-          <select
-            value={tournamentId}
-            onChange={(e) => handleTournamentChange(e.target.value)}
-            className="w-full cursor-pointer rounded-xl border border-border bg-bg-primary px-4 py-2.5 text-sm text-text-primary focus:border-accent focus:outline-none"
-          >
-            <option value="">Select a tournament…</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-text-primary/50">
+              Tournament
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(true)}
+              disabled={showCreateForm}
+              className="cursor-pointer rounded-lg border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-bold text-accent transition-colors hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              + New tournament
+            </button>
+          </div>
+
+          {tournaments.length > 0 && (
+            <select
+              value={tournamentId}
+              onChange={(e) => handleTournamentChange(e.target.value)}
+              className="w-full cursor-pointer rounded-xl border border-border bg-bg-primary px-4 py-2.5 text-sm text-text-primary focus:border-accent focus:outline-none"
+            >
+              <option value="">Select a tournament…</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {tournaments.length === 0 && !showCreateForm && (
+            <p className="rounded-xl border border-dashed border-border bg-bg-primary px-4 py-6 text-center text-sm text-text-primary/50">
+              Create a tournament first to start adding teams.
+            </p>
+          )}
+
+          {showCreateForm && (
+            <form onSubmit={handleCreateTournament} className="flex flex-wrap items-center gap-2 pt-1">
+              <input
+                type="text"
+                value={newTournamentName}
+                onChange={(e) => setNewTournamentName(e.target.value)}
+                placeholder="Tournament name (e.g. Epix Friday Cup)"
+                autoFocus
+                className="min-w-40 flex-1 rounded-xl border border-border bg-bg-primary px-4 py-2.5 text-sm text-text-primary placeholder:text-text-primary/25 focus:border-accent focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={creating || !newTournamentName.trim()}
+                className="cursor-pointer rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-text-primary hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {creating ? "Saving..." : "Save"}
+              </button>
+              {tournaments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setNewTournamentName("");
+                    setError("");
+                  }}
+                  className="cursor-pointer rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-text-primary/70 hover:bg-white/5"
+                >
+                  Cancel
+                </button>
+              )}
+            </form>
+          )}
         </div>
 
         {savedTeam && (
