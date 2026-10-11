@@ -4,6 +4,7 @@ import archiver from "archiver";
 import { env } from "../config/env.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { ProductionTeamModel } from "../models/ProductionTeam.js";
+import { ProductionTournamentModel } from "../models/ProductionTournament.js";
 import { TournamentModel } from "../models/Tournament.js";
 import { uploadImage } from "../services/storageService.js";
 import { signToken } from "../utils/jwt.js";
@@ -193,4 +194,30 @@ export const exportProductionRoster = asyncHandler(async (req: Request, res: Res
 
   archive.append(csvLines.join("\n") + "\n", { name: "roster.csv" });
   await archive.finalize();
+});
+
+export const createProductionTournament = asyncHandler(async (req: Request, res: Response) => {
+  const { name } = req.body;
+  if (!name || typeof name !== "string" || !name.trim()) {
+    res.status(400).json({ message: "Tournament name is required" });
+    return;
+  }
+  const tournament = await ProductionTournamentModel.create({
+    id: `ptn-${crypto.randomBytes(6).toString("hex")}`,
+    name: name.trim(),
+  });
+  res.status(201).json({ id: tournament.id, name: tournament.name });
+});
+
+export const listProductionTournaments = asyncHandler(async (_req: Request, res: Response) => {
+  const tournaments = await ProductionTournamentModel.find()
+    .sort({ createdAt: -1 })
+    .lean();
+  res.json(
+    tournaments.map((t) => ({
+      id: t.id,
+      name: t.name,
+      createdAt: t.createdAt,
+    })),
+  );
 });
