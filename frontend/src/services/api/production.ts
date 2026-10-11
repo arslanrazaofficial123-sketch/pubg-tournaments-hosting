@@ -125,3 +125,20 @@ export async function downloadProductionRoster(tournamentId: string): Promise<vo
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export interface ProductionTournament {
+  id: string;
+  name: string;
+  createdAt?: string;
+}
+
+export async function listProductionTournaments(): Promise<ProductionTournament[]> {
+  return productionFetch<ProductionTournament[]>("/production/tournaments");
+}
+
+export async function createProductionTournament(name: string): Promise<ProductionTournament> {
+  return productionFetch<ProductionTournament>("/production/tournaments", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
