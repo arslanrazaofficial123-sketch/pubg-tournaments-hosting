@@ -5,7 +5,6 @@ import { env } from "../config/env.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { ProductionTeamModel } from "../models/ProductionTeam.js";
 import { ProductionTournamentModel } from "../models/ProductionTournament.js";
-import { TournamentModel } from "../models/Tournament.js";
 import { uploadImage } from "../services/storageService.js";
 import { signToken } from "../utils/jwt.js";
 import { fetchImageBuffer, sanitizePathSegment } from "../utils/imageFetch.js";
@@ -62,7 +61,7 @@ export const createProductionTeam = asyncHandler(async (req: Request, res: Respo
     }
   }
 
-  const tournament = await TournamentModel.findOne({ id: tournamentId }).lean();
+  const tournament = await ProductionTournamentModel.findOne({ id: tournamentId }).lean();
   if (!tournament) {
     res.status(404).json({ message: "Tournament not found" });
     return;
