@@ -28,7 +28,9 @@ const FOLDER_MAP: Record<string, string> = {
   "production-photo": "epix/production-photos",
 };
 
-export async function uploadImage(params: UploadImageParams): Promise<string> {
+export async function uploadImageWithMeta(
+  params: UploadImageParams,
+): Promise<{ url: string; bytes: number }> {
   const { kind, uid, teamName, dataUrl } = params;
 
   const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
@@ -50,5 +52,22 @@ export async function uploadImage(params: UploadImageParams): Promise<string> {
     resource_type: "image",
   });
 
-  return result.secure_url;
+  return { url: result.secure_url, bytes: Number(result.bytes) || 0 };
+}
+
+export async function uploadImage(params: UploadImageParams): Promise<string> {
+  const { url } = await uploadImageWithMeta(params);
+  return url;
+}
+
+/** Best-effort removal of a Cloudinary image by its delivery URL. Never throws. */
+export async function deleteImageByUrl(url: string): Promise<void> {
+  try {
+    if (!url || !url.includes("res.cloudinary.com")) return;
+    const m = new URL(url).pathname.match(/\/image\/upload\/(?:[^/]+\/)*?(?:v\d+\/)?(epix\/.+)\.[a-z0-9]+$/i);
+    if (!m) return;
+    await cloudinary.uploader.destroy(decodeURIComponent(m[1]), { resource_type: "image" });
+  } catch {
+    /* ignore — storage cleanup is best-effort */
+  }
 }

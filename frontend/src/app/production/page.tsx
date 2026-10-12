@@ -18,7 +18,7 @@ export default function ProductionLoginPage() {
 
   useEffect(() => {
     if (productionToken()) {
-      router.replace("/production/add-team");
+      router.replace("/production/desk");
     }
   }, [router]);
 
@@ -33,7 +33,7 @@ export default function ProductionLoginPage() {
     try {
       const res = await productionLogin(username.trim(), password);
       setProductionToken(res.token);
-      router.push("/production/add-team");
+      router.push("/production/desk");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed. Please try again.");
       setBusy(false);
