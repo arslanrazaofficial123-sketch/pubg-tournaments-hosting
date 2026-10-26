@@ -159,6 +159,15 @@ export async function updateProductionTournament(
   });
 }
 
+export async function deleteProductionTournament(
+  id: string,
+): Promise<{ success: boolean; deletedTeams: number }> {
+  return productionFetch<{ success: boolean; deletedTeams: number }>(
+    `/production/tournaments/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function createProductionTeam(
   payload: TeamPayload & { tournamentId: string },
 ): Promise<ProductionTeam> {
