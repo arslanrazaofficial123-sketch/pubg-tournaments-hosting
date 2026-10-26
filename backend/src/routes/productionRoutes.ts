@@ -3,6 +3,7 @@ import {
   createProductionTeam,
   createProductionTournament,
   deleteProductionTeam,
+  deleteProductionTournament,
   exportProductionRoster,
   exportProductionTeam,
   getProductionTournament,
@@ -37,5 +38,6 @@ router.post("/tournaments", createProductionTournament);
 router.get("/tournaments", listProductionTournaments);
 router.get("/tournaments/:id", getProductionTournament);
 router.patch("/tournaments/:id", updateProductionTournament);
+router.delete("/tournaments/:id", deleteProductionTournament);
 
 export default router;

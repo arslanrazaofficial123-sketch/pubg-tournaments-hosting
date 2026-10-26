@@ -493,6 +493,22 @@ export const updateProductionTournament = asyncHandler(async (req: Request, res:
   res.json(serializeTournament(await ensureSlug(t as TournamentDoc), teams));
 });
 
+export const deleteProductionTournament = asyncHandler(async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const tournament = await ProductionTournamentModel.findOne({ id }).lean();
+  if (!tournament) {
+    res.status(404).json({ message: "Tournament not found" });
+    return;
+  }
+  const teams = (await ProductionTeamModel.find({ tournamentId: id }).lean()) as TeamDoc[];
+  await ProductionTeamModel.deleteMany({ tournamentId: id });
+  await Promise.all(
+    teams.map((team) => cleanupReplacedMedia(team, { teamLogo: "", players: [] })),
+  );
+  await ProductionTournamentModel.deleteOne({ id });
+  res.json({ success: true, deletedTeams: teams.length });
+});
+
 // ───────────────────────── public (share link, no account) ─────────────────────────
 
 async function findBySlug(slug: string): Promise<TournamentDoc | null> {
