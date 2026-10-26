@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ApiError } from "@/services/api";
 import {
   createProductionTournament,
+  deleteProductionTournament,
   listProductionTournaments,
   type ProductionTournament,
 } from "@/services/api/production";
@@ -27,6 +28,7 @@ export default function ProductionDeskPage() {
   const [tournaments, setTournaments] = useState<ProductionTournament[] | null>(null);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -47,6 +49,21 @@ export default function ProductionDeskPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to create tournament.");
       setCreating(false);
+    }
+  };
+
+  const handleDelete = async (t: ProductionTournament) => {
+    if (confirmDelete !== t.id) {
+      setConfirmDelete(t.id);
+      return;
+    }
+    setConfirmDelete("");
+    setError("");
+    try {
+      await deleteProductionTournament(t.id);
+      setTournaments((prev) => (prev ?? []).filter((x) => x.id !== t.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete tournament.");
     }
   };
 
@@ -133,7 +150,47 @@ export default function ProductionDeskPage() {
               <p className="mt-5 text-xs text-text-primary/40">
                 {t.deadline ? `Deadline ${formatPkt(t.deadline)} (PKT)` : "No deadline"}
               </p>
-              <p className="mt-5 border-t border-border/60 pt-4 text-sm font-semibold text-accent">Manage collection →</p>
+              <div className="mt-5 flex items-center justify-between border-t border-border/60 pt-4">
+                <span className="text-sm font-semibold text-accent">Manage collection →</span>
+                {confirmDelete === t.id ? (
+                  <span className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setConfirmDelete("");
+                      }}
+                      className="cursor-pointer text-xs font-semibold text-text-primary/50 hover:text-text-primary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(t);
+                      }}
+                      className="cursor-pointer rounded-lg border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                    >
+                      Confirm delete
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDelete(t);
+                    }}
+                    className="cursor-pointer rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-400/80 hover:bg-red-500/10"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </Link>
           ))}
         </div>
