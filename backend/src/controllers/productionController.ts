@@ -693,10 +693,11 @@ export const updatePublicTeam = asyncHandler(async (req: Request, res: Response)
 // The NodeCG dashboard ("Download & send") reads these exactly like desk tournaments/teams.
 
 export const listRegistrationTournaments = asyncHandler(async (_req: Request, res: Response) => {
-  const tournaments = (await TournamentModel.find({}, { id: 1, title: 1, status: 1 }).sort({ createdAt: -1 }).lean()) as Array<{
+  const tournaments = (await TournamentModel.find({}, { id: 1, title: 1, status: 1, numGroups: 1 }).sort({ createdAt: -1 }).lean()) as Array<{
     id: string;
     title: string;
     status: string;
+    numGroups?: number;
   }>;
   const counts = await RegistrationModel.aggregate([
     { $match: { status: { $ne: "rejected" } } },
@@ -709,6 +710,7 @@ export const listRegistrationTournaments = asyncHandler(async (_req: Request, re
       name: t.title,
       teamCount: byId.get(t.id) || 0,
       isOpen: t.status === "registration_open",
+      groups: groupList({ groupCount: t.numGroups }),
     })),
   );
 });
@@ -743,6 +745,7 @@ export const listRegisteredTeams = asyncHandler(async (req: Request, res: Respon
         tournamentId: r.tournamentId,
         teamName: r.teamName,
         teamLogo: r.teamLogo || "",
+        group: String(r.group || "").replace(/^group\s*/i, "").trim().toUpperCase(),
         slotNumber: r.slotNumber ?? null,
         status: r.status,
         source: "registration",
