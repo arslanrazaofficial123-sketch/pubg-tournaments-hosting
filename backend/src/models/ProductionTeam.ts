@@ -16,6 +16,8 @@ const productionTeamSchema = new Schema(
     teamName: { type: String, required: true },
     teamLogo: { type: String, required: true },
     logoBytes: { type: Number, default: 0 },
+    // "A", "B"... when the tournament has groups, "" otherwise
+    group: { type: String, default: "" },
     players: { type: [productionPlayerSchema], default: [] },
     // "organizer" = added from the production desk, "link" = submitted via the public share link
     source: { type: String, enum: ["organizer", "link"], default: "organizer" },

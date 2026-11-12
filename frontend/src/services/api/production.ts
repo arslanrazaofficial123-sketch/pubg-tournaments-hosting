@@ -14,6 +14,7 @@ export interface ProductionTeam {
   tournamentId: string;
   teamName: string;
   teamLogo: string;
+  group?: string;
   players: ProductionPlayer[];
   source: ProductionTeamSource;
   bytes: number;
@@ -27,6 +28,8 @@ export interface ProductionTournament {
   slug: string | null;
   acceptingUploads: boolean;
   deadline: string | null;
+  groupCount?: number;
+  groups?: string[];
   isOpen: boolean;
   teamCount: number;
   photoCount: number;
@@ -38,6 +41,7 @@ export interface TeamPayload {
   teamName: string;
   teamLogo: string;
   players: ProductionPlayer[];
+  group?: string;
 }
 
 export function productionToken(): string | null {
@@ -142,16 +146,16 @@ export async function getProductionTournament(id: string): Promise<ProductionTou
   return productionFetch<ProductionTournament>(`/production/tournaments/${encodeURIComponent(id)}`);
 }
 
-export async function createProductionTournament(name: string): Promise<ProductionTournament> {
+export async function createProductionTournament(name: string, groupCount = 1): Promise<ProductionTournament> {
   return productionFetch<ProductionTournament>("/production/tournaments", {
     method: "POST",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, groupCount }),
   });
 }
 
 export async function updateProductionTournament(
   id: string,
-  patch: { name?: string; acceptingUploads?: boolean; deadline?: string | null },
+  patch: { name?: string; acceptingUploads?: boolean; deadline?: string | null; groupCount?: number },
 ): Promise<ProductionTournament> {
   return productionFetch<ProductionTournament>(`/production/tournaments/${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -223,11 +227,13 @@ export interface PublicTournament {
   acceptingUploads: boolean;
   deadline: string | null;
   maxPlayers: number;
+  groups?: string[];
 }
 
 export interface PublicTeam {
   teamName: string;
   teamLogo: string;
+  group?: string;
   players: ProductionPlayer[];
   updatedAt?: string;
 }

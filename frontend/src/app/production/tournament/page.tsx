@@ -53,7 +53,7 @@ export default function ProductionTournamentPage() {
   const [notice, setNotice] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [deadlineInput, setDeadlineInput] = useState("");
-  const [saving, setSaving] = useState<"" | "deadline" | "toggle">("");
+  const [saving, setSaving] = useState<"" | "deadline" | "toggle" | "groups">("");
   const [zipping, setZipping] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState("");
   const [query, setQuery] = useState("");
@@ -259,6 +259,29 @@ export default function ProductionTournamentPage() {
             </span>
             <span className="text-text-primary/60">{plural(tournament.teamCount, "team")} received</span>
           </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-text-primary/60">Groups:</span>
+            {[1, 2, 3, 4].map((n) => (
+              <button
+                key={n}
+                type="button"
+                disabled={saving !== ""}
+                onClick={async () => {
+                  setSaving("groups");
+                  try {
+                    setTournament(await updateProductionTournament(tournament.id, { groupCount: n }));
+                  } finally {
+                    setSaving("");
+                  }
+                }}
+                className={`cursor-pointer rounded-lg border px-3 py-1 text-xs font-semibold ${
+                  (tournament.groupCount || 1) === n ? "border-accent bg-accent/15 text-accent" : "border-border text-text-primary/60"
+                }`}
+              >
+                {n === 1 ? "None" : "ABCD".slice(0, n).split("").join(" ")}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-3">
             <button type="button" onClick={toggleUploads} disabled={saving !== ""} className={btnGhost}>
               {saving === "toggle" ? "Saving..." : tournament.acceptingUploads ? "Close uploads" : "Open uploads"}
@@ -319,6 +342,11 @@ export default function ProductionTournamentPage() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate text-xl font-semibold text-text-primary">{team.teamName}</h3>
+                      {(tournament.groups?.length ?? 0) > 0 && (
+                        <span className="rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                          Group {team.group || "A"}
+                        </span>
+                      )}
                       <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-text-primary/60">
                         {team.source === "link" ? "Uploaded via link" : "Added by organizer"}
                       </span>

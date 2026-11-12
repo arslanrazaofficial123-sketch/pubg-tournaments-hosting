@@ -185,6 +185,7 @@ export default function PublicUploadPage() {
           key={`edit-${team.updatedAt}`}
           initial={team}
           maxPlayers={tournament.maxPlayers}
+          groups={tournament.groups}
           disabled={!tournament.isOpen}
           submitLabel="Save changes →"
           onSubmit={async (payload) => {
@@ -220,6 +221,7 @@ export default function PublicUploadPage() {
       {tournament.isOpen ? (
         <TeamForm
           maxPlayers={tournament.maxPlayers}
+          groups={tournament.groups}
           submitLabel="Submit team →"
           busyLabel="Uploading... please keep this page open"
           onSubmit={async (payload) => {

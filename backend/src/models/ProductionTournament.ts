@@ -8,6 +8,8 @@ const productionTournamentSchema = new Schema(
     slug: { type: String, unique: true, sparse: true },
     acceptingUploads: { type: Boolean, default: true },
     deadline: { type: Date, default: null },
+    // 1 = no groups. 2..8 = Group A, B, C ... teams must pick one when they upload.
+    groupCount: { type: Number, default: 1, min: 1, max: 8 },
   },
   { timestamps: true },
 );

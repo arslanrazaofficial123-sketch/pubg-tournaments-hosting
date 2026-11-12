@@ -29,6 +29,7 @@ interface TeamDoc {
   teamName: string;
   teamLogo: string;
   logoBytes?: number;
+  group?: string;
   players?: PlayerDoc[];
   source?: TeamSource;
   createdAt?: Date;
@@ -41,6 +42,7 @@ interface TournamentDoc {
   slug?: string | null;
   acceptingUploads?: boolean;
   deadline?: Date | null;
+  groupCount?: number;
   createdAt?: Date;
 }
 
@@ -94,12 +96,27 @@ function teamBytes(team: TeamDoc): number {
   return (team.logoBytes || 0) + (team.players || []).reduce((s, p) => s + (p.bytes || 0), 0);
 }
 
+const GROUP_LETTERS = "ABCDEFGH";
+function groupList(t: { groupCount?: number }): string[] {
+  const n = Math.max(1, Math.min(8, Math.floor(Number(t.groupCount) || 1)));
+  return n > 1 ? GROUP_LETTERS.slice(0, n).split("") : [];
+}
+/** "" when the tournament has no groups; otherwise the chosen group letter or an error. */
+function resolveGroup(t: { groupCount?: number }, raw: unknown): { group: string } | { error: string } {
+  const groups = groupList(t);
+  if (!groups.length) return { group: "" };
+  const g = typeof raw === "string" ? raw.trim().toUpperCase() : "";
+  if (!groups.includes(g)) return { error: `Choose a group (${groups.join(", ")})` };
+  return { group: g };
+}
+
 function serializeTeam(team: TeamDoc) {
   return {
     id: team.id,
     tournamentId: team.tournamentId,
     teamName: team.teamName,
     teamLogo: team.teamLogo,
+    group: team.group || "",
     players: (team.players || []).map((p) => ({ uid: p.uid, photo: p.photo })),
     source: (team.source || "organizer") as TeamSource,
     bytes: teamBytes(team),
@@ -123,6 +140,8 @@ function serializeTournament(t: TournamentDoc, teams: TeamDoc[]) {
     slug: t.slug || null,
     acceptingUploads: t.acceptingUploads !== false,
     deadline: t.deadline ? new Date(t.deadline).toISOString() : null,
+    groupCount: Math.max(1, t.groupCount || 1),
+    groups: groupList(t),
     isOpen: isOpen(t),
     createdAt: t.createdAt,
     ...tournamentStats(teams),
@@ -338,6 +357,11 @@ export const createProductionTeam = asyncHandler(async (req: Request, res: Respo
     res.status(404).json({ message: "Tournament not found" });
     return;
   }
+  const grp = resolveGroup(tournament as TournamentDoc, req.body.group);
+  if ("error" in grp) {
+    res.status(400).json({ message: grp.error });
+    return;
+  }
   if (await findDuplicateName(tournamentId, input.teamName)) {
     res.status(409).json({ message: `A team named "${input.teamName}" already exists in this tournament` });
     return;
@@ -348,6 +372,7 @@ export const createProductionTeam = asyncHandler(async (req: Request, res: Respo
     id: `pt-${crypto.randomBytes(6).toString("hex")}`,
     tournamentId,
     teamName: input.teamName,
+    group: grp.group,
     source: "organizer",
     ...media,
   });
@@ -364,7 +389,10 @@ export const listProductionTeams = asyncHandler(async (req: Request, res: Respon
   const teams = (await ProductionTeamModel.find({ tournamentId })
     .sort({ createdAt: -1 })
     .lean()) as TeamDoc[];
-  res.json(teams.map(serializeTeam));
+  // teams uploaded before the tournament had groups count as Group A
+  const t = (await ProductionTournamentModel.findOne({ id: tournamentId }).lean()) as TournamentDoc | null;
+  const grouped = !!t && groupList(t).length > 0;
+  res.json(teams.map((team) => ({ ...serializeTeam(team), group: team.group || (grouped ? "A" : "") })));
 });
 
 export const deleteProductionTeam = asyncHandler(async (req: Request, res: Response) => {
@@ -406,15 +434,21 @@ export const exportProductionTeam = asyncHandler(async (req: Request, res: Respo
 });
 
 export const createProductionTournament = asyncHandler(async (req: Request, res: Response) => {
-  const { name } = req.body;
+  const { name, groupCount } = req.body as { name?: unknown; groupCount?: unknown };
   if (!name || typeof name !== "string" || !name.trim()) {
     res.status(400).json({ message: "Tournament name is required" });
+    return;
+  }
+  const groups = groupCount === undefined ? 1 : Number(groupCount);
+  if (!Number.isInteger(groups) || groups < 1 || groups > 8) {
+    res.status(400).json({ message: "Groups must be a number from 1 to 8" });
     return;
   }
   const tournament = await ProductionTournamentModel.create({
     id: `ptn-${crypto.randomBytes(6).toString("hex")}`,
     name: name.trim().slice(0, 80),
     slug: newSlug(),
+    groupCount: groups,
   });
   res.status(201).json(serializeTournament(tournament.toObject() as TournamentDoc, []));
 });
@@ -448,7 +482,8 @@ export const getProductionTournament = asyncHandler(async (req: Request, res: Re
 });
 
 export const updateProductionTournament = asyncHandler(async (req: Request, res: Response) => {
-  const { name, acceptingUploads, deadline } = req.body as {
+  const { name, acceptingUploads, deadline, groupCount } = req.body as {
+    groupCount?: unknown;
     name?: unknown;
     acceptingUploads?: unknown;
     deadline?: unknown;
@@ -468,6 +503,14 @@ export const updateProductionTournament = asyncHandler(async (req: Request, res:
       return;
     }
     update.acceptingUploads = acceptingUploads;
+  }
+  if (groupCount !== undefined) {
+    const n = Number(groupCount);
+    if (!Number.isInteger(n) || n < 1 || n > 8) {
+      res.status(400).json({ message: "Groups must be a number from 1 to 8" });
+      return;
+    }
+    update.groupCount = n;
   }
   if (deadline !== undefined) {
     if (deadline === null || deadline === "") {
@@ -525,6 +568,7 @@ function publicTournament(t: TournamentDoc) {
     acceptingUploads: t.acceptingUploads !== false,
     deadline: t.deadline ? new Date(t.deadline).toISOString() : null,
     maxPlayers: MAX_PLAYERS,
+    groups: groupList(t),
   };
 }
 
@@ -532,6 +576,7 @@ function publicTeam(team: TeamDoc) {
   return {
     teamName: team.teamName,
     teamLogo: team.teamLogo,
+    group: team.group || "",
     players: (team.players || []).map((p) => ({ uid: p.uid, photo: p.photo })),
     updatedAt: team.updatedAt,
   };
@@ -561,6 +606,11 @@ export const submitPublicTeam = asyncHandler(async (req: Request, res: Response)
     res.status(400).json({ message: input.error });
     return;
   }
+  const grp = resolveGroup(t, req.body.group);
+  if ("error" in grp) {
+    res.status(400).json({ message: grp.error });
+    return;
+  }
   if (await findDuplicateName(t.id, input.teamName)) {
     res.status(409).json({
       message: `"${input.teamName}" has already been submitted. Use your edit link to change it, or contact the organizer.`,
@@ -574,6 +624,7 @@ export const submitPublicTeam = asyncHandler(async (req: Request, res: Response)
     id: `pt-${crypto.randomBytes(6).toString("hex")}`,
     tournamentId: t.id,
     teamName: input.teamName,
+    group: grp.group,
     source: "link",
     editTokenHash: hashToken(editToken),
     ...media,
@@ -616,6 +667,11 @@ export const updatePublicTeam = asyncHandler(async (req: Request, res: Response)
     res.status(400).json({ message: input.error });
     return;
   }
+  const grp = resolveGroup(t, req.body.group);
+  if ("error" in grp) {
+    res.status(400).json({ message: grp.error });
+    return;
+  }
   if (await findDuplicateName(t.id, input.teamName, team.id)) {
     res.status(409).json({ message: `Another team is already called "${input.teamName}"` });
     return;
@@ -624,7 +680,7 @@ export const updatePublicTeam = asyncHandler(async (req: Request, res: Response)
   const media = await storeTeamMedia(input, team);
   const updated = (await ProductionTeamModel.findOneAndUpdate(
     { id: team.id },
-    { $set: { teamName: input.teamName, ...media } },
+    { $set: { teamName: input.teamName, group: grp.group, ...media } },
     { new: true },
   ).lean()) as TeamDoc | null;
   await cleanupReplacedMedia(team, media);

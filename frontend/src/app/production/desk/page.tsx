@@ -38,13 +38,15 @@ export default function ProductionDeskPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load tournaments."));
   }, [ready]);
 
+  const [groupCount, setGroupCount] = useState(1);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || creating) return;
     setCreating(true);
     setError("");
     try {
-      const t = await createProductionTournament(name.trim());
+      const t = await createProductionTournament(name.trim(), groupCount);
       router.push(`/production/tournament?id=${encodeURIComponent(t.id)}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to create tournament.");
@@ -102,6 +104,23 @@ export default function ProductionDeskPage() {
           </div>
           <div>
             <label className="mb-2 block text-sm text-text-primary/70">Tournament name</label>
+            <div className="mb-3">
+              <label className="mb-2 block text-sm text-text-primary/70">Groups</label>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setGroupCount(n)}
+                    className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                      groupCount === n ? "border-accent bg-accent/15 text-accent" : "border-border text-text-primary/60 hover:border-accent/60"
+                    }`}
+                  >
+                    {n === 1 ? "No groups" : `${n} groups (${"ABCD".slice(0, n).split("").join(", ")})`}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 value={name}

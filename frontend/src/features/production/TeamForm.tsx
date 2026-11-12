@@ -18,7 +18,9 @@ function rowKey(): string {
 }
 
 export interface TeamFormProps {
-  initial?: { teamName: string; teamLogo: string; players: ProductionPlayer[] };
+  initial?: { teamName: string; teamLogo: string; players: ProductionPlayer[]; group?: string };
+  /** Group letters to pick from. Empty/undefined = the tournament has no groups (no picker is shown). */
+  groups?: string[];
   maxPlayers?: number;
   submitLabel: string;
   busyLabel?: string;
@@ -30,12 +32,14 @@ export interface TeamFormProps {
 export function TeamForm({
   initial,
   maxPlayers = 16,
+  groups = [],
   submitLabel,
   busyLabel = "Uploading...",
   disabled = false,
   onSubmit,
 }: TeamFormProps) {
   const [teamName, setTeamName] = useState(initial?.teamName ?? "");
+  const [group, setGroup] = useState(initial?.group && groups.includes(initial.group) ? initial.group : "");
   const [logo, setLogo] = useState(initial?.teamLogo ?? "");
   const [logoLabel, setLogoLabel] = useState(initial?.teamLogo ? "Current logo" : "");
   const [players, setPlayers] = useState<PlayerRow[]>(
@@ -103,6 +107,7 @@ export function TeamForm({
     setError("");
     if (!logo) return setError("Team logo is required.");
     if (!teamName.trim()) return setError("Team name is required.");
+    if (groups.length > 1 && !group) return setError("Choose which group your team is in.");
     const uids = new Set<string>();
     for (const p of players) {
       if (!/^\d{1,32}$/.test(p.uid)) return setError("Every player photo needs a numeric UID.");
@@ -136,6 +141,7 @@ export function TeamForm({
         teamName: teamName.trim(),
         teamLogo: sendLogo,
         players: sendPlayers,
+        ...(groups.length > 1 ? { group } : {}),
       });
       if (reset) {
         setTeamName("");
@@ -199,6 +205,28 @@ export function TeamForm({
               placeholder="e.g. Falcon Esports"
               className={inputCls}
             />
+            {groups.length > 1 && (
+              <div className="pt-1">
+                <label className="block text-sm font-medium text-text-primary/80">
+                  Group <span className="text-accent">*</span>
+                </label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {groups.map((g) => (
+                    <button
+                      key={g}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => setGroup(g)}
+                      className={`cursor-pointer rounded-xl border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
+                        group === g ? "border-accent bg-accent/15 text-accent" : "border-border text-text-primary/60 hover:border-accent/60"
+                      }`}
+                    >
+                      Group {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <p className="text-xs text-text-primary/40">
               Logo is required. {logoLabel && <span className="text-text-primary/60">Selected: {logoLabel}</span>}
             </p>

@@ -75,6 +75,7 @@ export default function ProductionAddTeamPage() {
         ) : (
           <TeamForm
             key={formKey}
+            groups={tournament.groups}
             submitLabel="Save team to tournament →"
             busyLabel="Uploading images..."
             onSubmit={async (payload) => {
