@@ -5,6 +5,8 @@ import { env } from "../config/env.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { ProductionTeamModel } from "../models/ProductionTeam.js";
 import { ProductionTournamentModel } from "../models/ProductionTournament.js";
+import { RegistrationModel } from "../models/Registration.js";
+import { TournamentModel } from "../models/Tournament.js";
 import { deleteImageByUrl, uploadImageWithMeta } from "../services/storageService.js";
 import { signToken } from "../utils/jwt.js";
 import { fetchImageBuffer, sanitizePathSegment } from "../utils/imageFetch.js";
@@ -628,4 +630,69 @@ export const updatePublicTeam = asyncHandler(async (req: Request, res: Response)
   await cleanupReplacedMedia(team, media);
 
   res.json({ success: true, team: updated ? publicTeam(updated) : null });
+});
+
+
+// ───────── registered teams of the normal tournaments, in the same shape as the production desk ─────────
+// The NodeCG dashboard ("Download & send") reads these exactly like desk tournaments/teams.
+
+export const listRegistrationTournaments = asyncHandler(async (_req: Request, res: Response) => {
+  const tournaments = (await TournamentModel.find({}, { id: 1, title: 1, status: 1 }).sort({ createdAt: -1 }).lean()) as Array<{
+    id: string;
+    title: string;
+    status: string;
+  }>;
+  const counts = await RegistrationModel.aggregate([
+    { $match: { status: { $ne: "rejected" } } },
+    { $group: { _id: "$tournamentId", n: { $sum: 1 } } },
+  ]);
+  const byId = new Map<string, number>(counts.map((c: { _id: string; n: number }) => [c._id, c.n]));
+  res.json(
+    tournaments.map((t) => ({
+      id: t.id,
+      name: t.title,
+      teamCount: byId.get(t.id) || 0,
+      isOpen: t.status === "registration_open",
+    })),
+  );
+});
+
+export const listRegisteredTeams = asyncHandler(async (req: Request, res: Response) => {
+  const tournamentId = req.query.id ? String(req.query.id) : "";
+  if (!tournamentId) {
+    res.status(400).json({ message: "Tournament id is required" });
+    return;
+  }
+  // approved teams by default; ?status=all also gives pending ones (rejected never)
+  const statuses = req.query.status === "all" ? ["approved", "pending"] : ["approved"];
+  const regs = (await RegistrationModel.find({ tournamentId, status: { $in: statuses } })
+    .sort({ createdAt: 1 })
+    .lean()) as Array<{
+    id: string;
+    tournamentId: string;
+    teamName?: string;
+    teamLogo?: string;
+    group: string;
+    slotNumber?: number | null;
+    status: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    members?: Array<{ uid: string; inGameName: string; picture?: string }>;
+  }>;
+  res.json(
+    regs
+      .filter((r) => r.teamName)
+      .map((r) => ({
+        id: r.id,
+        tournamentId: r.tournamentId,
+        teamName: r.teamName,
+        teamLogo: r.teamLogo || "",
+        slotNumber: r.slotNumber ?? null,
+        status: r.status,
+        source: "registration",
+        players: (r.members || []).map((m) => ({ uid: m.uid, photo: m.picture || "", inGameName: m.inGameName })),
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+      })),
+  );
 });

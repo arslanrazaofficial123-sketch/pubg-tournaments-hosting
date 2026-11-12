@@ -9,7 +9,8 @@ export async function connectDatabase() {
     console.log("MongoDB already connected");
     return;
   }
-  await mongoose.connect(env.mongoUri);
+  // Keep the pool small: a free Atlas M0 cluster allows only ~500 connections in total.
+  await mongoose.connect(env.mongoUri, { maxPoolSize: 10, minPoolSize: 0, maxIdleTimeMS: 30000, serverSelectionTimeoutMS: 15000 });
   console.log("MongoDB connected");
   if (!indexesSynced) {
     try {

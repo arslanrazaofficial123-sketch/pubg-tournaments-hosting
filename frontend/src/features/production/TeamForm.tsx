@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import type { ProductionPlayer, TeamPayload } from "@/services/api/production";
 import { btnPrimary, inputCls, Panel } from "./ProductionShell";
-import { LOGO_OPTS, MAX_PAYLOAD_CHARS, PHOTO_OPTS, prepareImage } from "./utils";
+import { LOGO_OPTS, MAX_PAYLOAD_CHARS, PHOTO_OPTS, prepareImage, shrinkDataUrl } from "./utils";
 
 interface PlayerRow {
   key: string;
@@ -109,16 +109,33 @@ export function TeamForm({
       if (uids.has(p.uid)) return setError(`UID ${p.uid} is entered twice.`);
       uids.add(p.uid);
     }
-    const size = logo.length + players.reduce((s, p) => s + p.photo.length, 0);
-    if (size > MAX_PAYLOAD_CHARS) {
+    let sendLogo = logo;
+    let sendPlayers = players.map((p) => ({ uid: p.uid, photo: p.photo }));
+    const sizeOf = () => sendLogo.length + sendPlayers.reduce((s, p) => s + p.photo.length, 0);
+    if (sizeOf() > MAX_PAYLOAD_CHARS) {
+      // too big for one request: shrink the pictures automatically, step by step
+      setReading(true);
+      try {
+        for (const [dim, q] of [[900, 0.8], [720, 0.72], [560, 0.65]] as const) {
+          sendPlayers = await Promise.all(sendPlayers.map(async (p) => ({ ...p, photo: await shrinkDataUrl(p.photo, dim, q) })));
+          sendLogo = await shrinkDataUrl(sendLogo, Math.min(dim, 800), q);
+          if (sizeOf() <= MAX_PAYLOAD_CHARS) break;
+        }
+      } catch {
+        /* fall through to the size check below */
+      } finally {
+        setReading(false);
+      }
+    }
+    if (sizeOf() > MAX_PAYLOAD_CHARS) {
       return setError("These images are too large to send together. Remove a few photos or use smaller files.");
     }
     setBusy(true);
     try {
       const reset = await onSubmit({
         teamName: teamName.trim(),
-        teamLogo: logo,
-        players: players.map((p) => ({ uid: p.uid, photo: p.photo })),
+        teamLogo: sendLogo,
+        players: sendPlayers,
       });
       if (reset) {
         setTeamName("");

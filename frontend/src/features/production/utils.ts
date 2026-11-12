@@ -111,7 +111,25 @@ export async function prepareImage(
   return readAsDataUrl(blob);
 }
 
-export const LOGO_OPTS = { maxDim: 1024, keepUnder: 700 * 1024 };
-export const PHOTO_OPTS = { maxDim: 1280, keepUnder: 400 * 1024 };
+export const LOGO_OPTS = { maxDim: 1024, keepUnder: 400 * 1024 };
+export const PHOTO_OPTS = { maxDim: 1024, keepUnder: 180 * 1024 };
+
+/** Re-encodes an already prepared data URL smaller (used when a whole team is still too big for one request). */
+export async function shrinkDataUrl(dataUrl: string, maxDim: number, quality: number): Promise<string> {
+  if (!dataUrl.startsWith("data:image/")) return dataUrl;
+  const img = await loadImage(dataUrl);
+  const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  const keepAlpha = dataUrl.startsWith("data:image/png") || dataUrl.startsWith("data:image/webp");
+  if (!keepAlpha) { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const blob = await canvasToBlob(canvas, keepAlpha ? "image/webp" : "image/jpeg", quality);
+  const out = await readAsDataUrl(blob);
+  return out.length < dataUrl.length ? out : dataUrl;
+}
 /** Keep each request under the hosting limit (~4.5 MB). */
 export const MAX_PAYLOAD_CHARS = 4_200_000;

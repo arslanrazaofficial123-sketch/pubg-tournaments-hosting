@@ -10,6 +10,8 @@ import {
   getPublicTeam,
   getPublicTournament,
   listProductionTeams,
+  listRegisteredTeams,
+  listRegistrationTournaments,
   listProductionTournaments,
   productionLogin,
   submitPublicTeam,
@@ -34,6 +36,8 @@ router.get("/teams", listProductionTeams);
 router.get("/teams/export", exportProductionRoster);
 router.get("/teams/:teamId/export", exportProductionTeam);
 router.delete("/teams/:teamId", deleteProductionTeam);
+router.get("/registrations/tournaments", listRegistrationTournaments);
+router.get("/registrations", listRegisteredTeams);
 router.post("/tournaments", createProductionTournament);
 router.get("/tournaments", listProductionTournaments);
 router.get("/tournaments/:id", getProductionTournament);
