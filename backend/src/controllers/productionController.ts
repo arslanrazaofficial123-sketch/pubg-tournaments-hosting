@@ -406,6 +406,31 @@ export const deleteProductionTeam = asyncHandler(async (req: Request, res: Respo
   res.json({ success: true });
 });
 
+/** Moves a team to another group of its tournament (organizer only). */
+export const updateProductionTeam = asyncHandler(async (req: Request, res: Response) => {
+  const team = (await ProductionTeamModel.findOne({ id: req.params.teamId }).lean()) as TeamDoc | null;
+  if (!team) {
+    res.status(404).json({ message: "Team not found" });
+    return;
+  }
+  const tournament = (await ProductionTournamentModel.findOne({ id: team.tournamentId }).lean()) as TournamentDoc | null;
+  if (!tournament) {
+    res.status(404).json({ message: "Tournament not found" });
+    return;
+  }
+  const grp = resolveGroup(tournament, req.body.group);
+  if ("error" in grp) {
+    res.status(400).json({ message: grp.error });
+    return;
+  }
+  if (grp.group === (team.group || "")) {
+    res.json(serializeTeam(team));
+    return;
+  }
+  await ProductionTeamModel.updateOne({ id: team.id }, { $set: { group: grp.group } });
+  res.json({ ...serializeTeam(team), group: grp.group });
+});
+
 export const exportProductionRoster = asyncHandler(async (req: Request, res: Response) => {
   const tournamentId = req.query.id ? String(req.query.id) : "";
   if (!tournamentId) {

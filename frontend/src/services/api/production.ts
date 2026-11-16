@@ -185,6 +185,16 @@ export async function listProductionTeams(tournamentId: string): Promise<Product
   return productionFetch<ProductionTeam[]>(`/production/teams?id=${encodeURIComponent(tournamentId)}`);
 }
 
+export async function updateProductionTeam(
+  teamId: string,
+  patch: { group: string },
+): Promise<ProductionTeam> {
+  return productionFetch<ProductionTeam>(`/production/teams/${encodeURIComponent(teamId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
 export async function deleteProductionTeam(teamId: string): Promise<void> {
   await productionFetch<{ success: boolean }>(`/production/teams/${encodeURIComponent(teamId)}`, {
     method: "DELETE",

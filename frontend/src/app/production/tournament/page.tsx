@@ -11,6 +11,7 @@ import {
   downloadProductionTeamZip,
   getProductionTournament,
   listProductionTeams,
+  updateProductionTeam,
   updateProductionTournament,
   type ProductionTeam,
   type ProductionTournament,
@@ -55,6 +56,7 @@ export default function ProductionTournamentPage() {
   const [deadlineInput, setDeadlineInput] = useState("");
   const [saving, setSaving] = useState<"" | "deadline" | "toggle" | "groups">("");
   const [zipping, setZipping] = useState<string>("");
+  const [savingTeam, setSavingTeam] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -167,6 +169,24 @@ export default function ProductionTournamentPage() {
       flash(`"${team.teamName}" deleted`);
     } catch (err) {
       setError(errMsg(err, "Failed to delete team."));
+    }
+  };
+
+  /** Moves a team to another group; the badge updates immediately and rolls back if the save fails. */
+  const changeGroup = async (team: ProductionTeam, group: string) => {
+    if ((team.group || "A") === group) return;
+    const before = team.group;
+    setError("");
+    setSavingTeam(team.id);
+    setTeams((prev) => (prev ? prev.map((t) => (t.id === team.id ? { ...t, group } : t)) : prev));
+    try {
+      await updateProductionTeam(team.id, { group });
+      flash(`"${team.teamName}" moved to Group ${group}`);
+    } catch (err) {
+      setTeams((prev) => (prev ? prev.map((t) => (t.id === team.id ? { ...t, group: before } : t)) : prev));
+      setError(errMsg(err, "Failed to change the group."));
+    } finally {
+      setSavingTeam("");
     }
   };
 
@@ -343,9 +363,21 @@ export default function ProductionTournamentPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate text-xl font-semibold text-text-primary">{team.teamName}</h3>
                       {(tournament.groups?.length ?? 0) > 0 && (
-                        <span className="rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
-                          Group {team.group || "A"}
-                        </span>
+                        <label className="inline-flex items-center" title="Change this team's group">
+                          <span className="sr-only">Group for {team.teamName}</span>
+                          <select
+                            value={team.group || "A"}
+                            disabled={savingTeam === team.id}
+                            onChange={(e) => changeGroup(team, e.target.value)}
+                            className="cursor-pointer rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent outline-none transition-colors hover:bg-accent/15 focus:border-accent disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {(tournament.groups ?? []).map((g) => (
+                              <option key={g} value={g} className="bg-bg-primary text-text-primary">
+                                Group {g}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                       )}
                       <span className="rounded-md border border-border px-2 py-0.5 text-[11px] text-text-primary/60">
                         {team.source === "link" ? "Uploaded via link" : "Added by organizer"}

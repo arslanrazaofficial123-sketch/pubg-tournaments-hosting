@@ -15,6 +15,7 @@ import {
   listProductionTournaments,
   productionLogin,
   submitPublicTeam,
+  updateProductionTeam,
   updateProductionTournament,
   updatePublicTeam,
 } from "../controllers/productionController.js";
@@ -35,6 +36,7 @@ router.post("/teams", createProductionTeam);
 router.get("/teams", listProductionTeams);
 router.get("/teams/export", exportProductionRoster);
 router.get("/teams/:teamId/export", exportProductionTeam);
+router.patch("/teams/:teamId", updateProductionTeam);
 router.delete("/teams/:teamId", deleteProductionTeam);
 router.get("/registrations/tournaments", listRegistrationTournaments);
 router.get("/registrations", listRegisteredTeams);
