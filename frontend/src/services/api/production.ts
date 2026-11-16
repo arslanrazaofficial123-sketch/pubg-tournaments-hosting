@@ -30,6 +30,8 @@ export interface ProductionTournament {
   deadline: string | null;
   groupCount?: number;
   groups?: string[];
+  /** Teams in each group, keyed by group letter. Empty when the tournament has no groups. */
+  groupCounts?: Record<string, number>;
   isOpen: boolean;
   teamCount: number;
   photoCount: number;

@@ -145,7 +145,21 @@ function serializeTournament(t: TournamentDoc, teams: TeamDoc[]) {
     isOpen: isOpen(t),
     createdAt: t.createdAt,
     ...tournamentStats(teams),
+    groupCounts: countTeamsPerGroup(t, teams),
   };
+}
+
+/** Teams per group letter, in the tournament's own group order (empty when it has no groups). */
+function countTeamsPerGroup(t: TournamentDoc, teams: TeamDoc[]): Record<string, number> {
+  const groups = groupList(t);
+  const counts: Record<string, number> = {};
+  for (const g of groups) counts[g] = 0;
+  if (!groups.length) return counts;
+  for (const team of teams) {
+    const g = team.group || groups[0];
+    counts[g] = (counts[g] || 0) + 1;
+  }
+  return counts;
 }
 
 type ParsedPlayer = { uid: string; photo: string };
@@ -484,7 +498,7 @@ export const listProductionTournaments = asyncHandler(async (_req: Request, res:
     .lean()) as TournamentDoc[];
   const teams = (await ProductionTeamModel.find(
     {},
-    { tournamentId: 1, players: 1, logoBytes: 1 },
+    { tournamentId: 1, group: 1, players: 1, logoBytes: 1 },
   ).lean()) as TeamDoc[];
   const byTournament = new Map<string, TeamDoc[]>();
   for (const team of teams) {

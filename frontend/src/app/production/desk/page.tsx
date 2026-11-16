@@ -166,6 +166,18 @@ export default function ProductionDeskPage() {
               <p className="mt-2 text-sm text-text-primary/60">
                 {plural(t.teamCount, "team")} · {plural(t.photoCount, "player photo")} · {formatBytes(t.bytes)}
               </p>
+              {(t.groups?.length ?? 0) > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(t.groups ?? []).map((g) => (
+                    <span
+                      key={g}
+                      className="rounded-md border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent"
+                    >
+                      Group {g} · {t.groupCounts?.[g] ?? 0}
+                    </span>
+                  ))}
+                </div>
+              )}
               <p className="mt-5 text-xs text-text-primary/40">
                 {t.deadline ? `Deadline ${formatPkt(t.deadline)} (PKT)` : "No deadline"}
               </p>

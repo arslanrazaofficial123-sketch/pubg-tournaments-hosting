@@ -60,6 +60,7 @@ export default function ProductionTournamentPage() {
   const [confirmDelete, setConfirmDelete] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [groupFilter, setGroupFilter] = useState("");
 
 
   const id = useQueryParam("id");
@@ -193,6 +194,7 @@ export default function ProductionTournamentPage() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (teams ?? []).filter((t) => {
+      if (groupFilter && (t.group || "A") !== groupFilter) return false;
       if (filter === "organizer" && t.source !== "organizer") return false;
       if (filter === "link" && t.source !== "link") return false;
       if (filter === "photos" && t.players.length === 0) return false;
@@ -200,7 +202,18 @@ export default function ProductionTournamentPage() {
       if (!q) return true;
       return t.teamName.toLowerCase().includes(q) || t.players.some((p) => p.uid.includes(q));
     });
-  }, [teams, query, filter]);
+  }, [teams, query, filter, groupFilter]);
+
+  /** How many teams sit in each group — counts the whole roster, not the filtered view. */
+  const groupTotals = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const g of tournament?.groups ?? []) counts.set(g, 0);
+    for (const t of teams ?? []) {
+      const g = t.group || "A";
+      counts.set(g, (counts.get(g) ?? 0) + 1);
+    }
+    return Array.from(counts, ([group, count]) => ({ group, count }));
+  }, [teams, tournament]);
 
   if (!ready) return <ProductionShell><Spinner /></ProductionShell>;
 
@@ -315,6 +328,35 @@ export default function ProductionTournamentPage() {
           </div>
         </div>
 
+        {(tournament.groups?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-text-primary/60">Teams per group:</span>
+            {groupTotals.map(({ group, count }) => {
+              const active = groupFilter === group;
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setGroupFilter(active ? "" : group)}
+                  title={active ? "Show all groups" : `Show only Group ${group}`}
+                  className={`cursor-pointer rounded-lg border px-3 py-1 text-xs font-semibold transition-colors ${
+                    active
+                      ? "border-accent bg-accent/15 text-accent"
+                      : "border-border text-text-primary/70 hover:bg-white/5"
+                  }`}
+                >
+                  Group {group} · {plural(count, "team")}
+                </button>
+              );
+            })}
+            {groupFilter && (
+              <button type="button" onClick={() => setGroupFilter("")} className={linkCls}>
+                Show all groups ×
+              </button>
+            )}
+          </div>
+        )}
+
         {(error || notice) && (
           <p
             className={`rounded-xl border px-4 py-3 text-sm ${
@@ -339,7 +381,7 @@ export default function ProductionTournamentPage() {
                 ))}
               </select>
             </div>
-            <button type="button" onClick={() => { setQuery(""); setFilter("all"); }} className={`${linkCls} pb-3`}>
+            <button type="button" onClick={() => { setQuery(""); setFilter("all"); setGroupFilter(""); }} className={`${linkCls} pb-3`}>
               Reset
             </button>
           </div>
@@ -350,7 +392,13 @@ export default function ProductionTournamentPage() {
             No teams yet. Share the upload link or add a team manually.
           </p>
         ) : visible.length === 0 ? (
-          <p className="px-2 py-6 text-sm text-text-primary/50">No teams match this search.</p>
+          <p className="px-2 py-6 text-sm text-text-primary/50">
+            {groupFilter
+              ? query.trim() === "" && filter === "all"
+                ? `No teams in Group ${groupFilter} yet.`
+                : `No teams in Group ${groupFilter} match these filters.`
+              : "No teams match this search."}
+          </p>
         ) : (
           <div className="grid gap-5 md:grid-cols-2">
             {visible.map((team) => (
