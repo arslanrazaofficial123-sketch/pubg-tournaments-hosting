@@ -23,12 +23,12 @@ export function ShowcaseSection() {
   if (items.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <section id="hall" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-10 sm:px-6 lg:px-8">
       <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Hall of fame</p>
       <h2 className="mb-6 mt-1 text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">Past Tournaments &amp; Winners</h2>
       <div className="grid gap-6 lg:grid-cols-2">
         {items.map((it) => (
-          <article key={it.id} className="overflow-hidden rounded-2xl border border-border bg-black/30">
+          <article key={it.id} className="overflow-hidden rounded-md border border-white/10 bg-white/[0.045] backdrop-blur-md transition-all duration-300 hover:border-accent hover:shadow-[0_0_40px_rgba(255,122,26,0.12)]">
             <div className="grid grid-cols-2">
               {[{ u: it.championUrl, l: "Winner" }, { u: it.rankingsUrl, l: "Final rankings" }].map((p) => (
                 <button key={p.l} type="button" disabled={!p.u} onClick={() => p.u && setOpen(p.u)}

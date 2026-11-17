@@ -12,10 +12,10 @@ export default function Home() {
   const [activeSize, setActiveSize] = useState<string | null>(null);
 
   return (
-    <PageShell>
+    <PageShell heroVariant="home">
       <TournamentFilters activeSize={activeSize} onSizeChange={setActiveSize} />
 
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <section id="tournaments" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-10 sm:px-6 lg:px-8">
         <TournamentSections activeSize={activeSize} />
       </section>
       <ShowcaseSection />

@@ -17,7 +17,7 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
-    <div className="border-b border-white/5 bg-bg-primary">
+    <div className="border-b border-white/10 bg-black/30 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         {/* Dropdown (Left) */}
         <div className="relative">

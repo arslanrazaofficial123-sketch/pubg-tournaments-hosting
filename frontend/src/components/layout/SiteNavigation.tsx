@@ -171,16 +171,16 @@ export function SiteNavigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/5 bg-bg-primary/90 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 border-b border-white/10 bg-black/55 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="flex shrink-0 items-center gap-2">
-            <div className="relative h-8 w-8 overflow-hidden rounded-md border border-border bg-bg-secondary p-0.5 sm:h-9 sm:w-9">
+            <div className="relative h-9 w-9 sm:h-11 sm:w-11 drop-shadow-[0_0_12px_rgba(255,122,26,0.5)]">
               <Image
                 src="/images/logo.png"
                 alt="EPIX Esports logo"
                 fill
-                sizes="(max-width: 640px) 32px, 36px"
+                sizes="(max-width: 640px) 36px, 44px"
                 className="object-contain"
               />
             </div>

@@ -19,7 +19,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex h-[295px] w-[240px] shrink-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-bg-secondary text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-accent/50 hover:shadow-xl hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-[320px] sm:w-[300px]"
+      className="group relative flex h-[295px] w-[240px] shrink-0 flex-col overflow-hidden rounded-md border border-white/10 bg-white/[0.045] backdrop-blur-md text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-accent/50 hover:shadow-xl hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-[320px] sm:w-[300px]"
     >
       <span className="pointer-events-none absolute inset-x-4 top-0 z-10 h-px bg-linear-to-r from-transparent via-accent/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 

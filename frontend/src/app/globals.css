@@ -253,8 +253,9 @@ body {
 
 body {
   background-image:
-    radial-gradient(900px 520px at 90% -8%, rgba(255, 122, 26, 0.14), transparent 62%),
-    radial-gradient(800px 500px at -8% 40%, rgba(255, 192, 46, 0.06), transparent 60%);
+    radial-gradient(800px 560px at 88% 4%, rgba(255, 122, 26, 0.30), transparent 62%),
+    radial-gradient(900px 640px at 6% 30%, rgba(124, 58, 237, 0.26), transparent 62%),
+    radial-gradient(900px 600px at 70% 100%, rgba(30, 140, 255, 0.22), transparent 60%);
   background-attachment: fixed;
 }
 
@@ -285,3 +286,30 @@ input:focus, select:focus, textarea:focus {
   border-color: var(--color-accent) !important;
   box-shadow: 0 0 0 3px rgba(255, 122, 26, 0.18);
 }
+
+@keyframes logo3dSpin { to { transform: rotate(360deg); } }
+.logo3d-ring { animation: logo3dSpin 40s linear infinite; }
+.logo3d-ring-b { animation-duration: 26s; animation-direction: reverse; }
+.logo3d-ring::after {
+  content: ""; position: absolute; top: -4px; left: 50%; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--color-accent); box-shadow: 0 0 14px var(--color-accent);
+}
+@media (prefers-reduced-motion: reduce) { .logo3d-ring { animation: none; } }
+
+/* Neon hero buttons */
+.neo-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 10px; overflow: hidden;
+  padding: 13px 26px; border-radius: 14px; font-weight: 700; font-size: 14px; letter-spacing: .03em;
+  color: #fff; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.2);
+  transition: transform .25s, box-shadow .25s, border-color .25s;
+}
+.neo-btn::after { content: "→"; font-size: 16px; transition: transform .25s; }
+.neo-btn:hover { transform: translateY(-3px); border-color: var(--color-accent); box-shadow: 0 10px 34px rgba(255,122,26,.28); }
+.neo-btn:hover::after { transform: translateX(5px); }
+.neo-btn:active { transform: scale(.97); }
+.neo-btn-solid {
+  color: #1c0a00; border: 0;
+  background: linear-gradient(135deg, #ffc02e, #ff7a1a 55%, #ff4d2e);
+  box-shadow: 0 10px 32px rgba(255,100,20,.38), inset 0 1px 0 rgba(255,255,255,.45);
+}
+.neo-btn-solid:hover { box-shadow: 0 14px 44px rgba(255,100,20,.55), inset 0 1px 0 rgba(255,255,255,.5); }

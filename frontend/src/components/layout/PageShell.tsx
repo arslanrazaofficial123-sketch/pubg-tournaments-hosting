@@ -11,9 +11,10 @@ import { fetchUserByUid } from "@/services/api/auth";
 interface PageShellProps {
   children: React.ReactNode;
   showHelpFab?: boolean;
+  heroVariant?: "home" | "compact";
 }
 
-export function PageShell({ children, showHelpFab = true }: PageShellProps) {
+export function PageShell({ children, showHelpFab = true, heroVariant = "compact" }: PageShellProps) {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function PageShell({ children, showHelpFab = true }: PageShellProps) {
 
   return (
     <div className="relative">
-      <HeroSection onOpenAuth={handleOpenAuth} />
+      <HeroSection onOpenAuth={handleOpenAuth} variant={heroVariant} />
       <SiteNavigation />
       {children}
       <AuthModal
