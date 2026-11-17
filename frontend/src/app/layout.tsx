@@ -8,6 +8,7 @@ import ActivityTrackerInitializer from "@/components/ActivityTrackerInitializer"
 import { ErrorMonitor } from "@/components/ErrorMonitor";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CursorTrail } from "@/components/CursorTrail";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -33,6 +34,7 @@ export default function RootLayout({
         <AlertProvider>
           <ErrorMonitor />
           <CursorTrail />
+          <LanguageSwitcher />
           <ErrorBoundary>
             <ActivityTrackerInitializer />
             <main className="flex-1">{children}</main>
