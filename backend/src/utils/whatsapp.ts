@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { WaMessageModel } from "../models/WaMessage.js";
 
 const BLUETICKS_API_URL = "https://api.blueticks.co/v1";
 
@@ -21,6 +22,7 @@ export interface MatchCredentialsPayload {
   matchDate: string;
   slotNumber?: number | null;
   group?: string;
+  matchId?: string;
 }
 
 export function buildMatchCredentialsMessage(teamName: string, data: Omit<MatchCredentialsPayload, "teamName" | "whatsappNumber">): string {
@@ -96,7 +98,7 @@ export interface SendResult {
   total: number;
   waLinks: Array<{ teamName: string; phone: string; link: string }>;
   /* one line per team, so the admin can see exactly who got it and who did not */
-  results: Array<{ teamName: string; phone: string; slotNumber?: number | null; status: "sent" | "link" | "no-number" }>;
+  results: Array<{ teamName: string; phone: string; slotNumber?: number | null; status: "sent" | "queued" | "link" | "no-number" }>;
 }
 
 export async function sendMatchCredentialsWhatsApp(
@@ -107,6 +109,7 @@ export async function sendMatchCredentialsWhatsApp(
   let noNumber = 0;
   const waLinks: Array<{ teamName: string; phone: string; link: string }> = [];
   const results: SendResult["results"] = [];
+  const toQueue: Array<{ to: string; text: string; teamName: string; matchId: string }> = [];
 
   for (const reg of registrations) {
     if (!reg.whatsappNumber) {
@@ -128,7 +131,13 @@ export async function sendMatchCredentialsWhatsApp(
     });
 
     let ok = false;
-    if (env.whatsappApiKey) {
+    let queued = false;
+    if (env.waGatewaySecret) {
+      /* free route: the gateway on the organiser's PC sends it from his own WhatsApp */
+      toQueue.push({ to: formatPhone(reg.whatsappNumber), text: message, teamName: reg.teamName, matchId: reg.matchId || "" });
+      ok = true;
+      queued = true;
+    } else if (env.whatsappApiKey) {
       ok = await sendViaBlueticks(reg.whatsappNumber, message);
     }
 
@@ -146,8 +155,20 @@ export async function sendMatchCredentialsWhatsApp(
       teamName: reg.teamName,
       phone: reg.whatsappNumber,
       slotNumber: reg.slotNumber ?? null,
-      status: ok ? "sent" : "link",
+      status: queued ? "queued" : ok ? "sent" : "link",
     });
+  }
+
+  /* one single insert for every team, so all messages are queued at the same instant */
+  if (toQueue.length > 0) {
+    try {
+      await WaMessageModel.insertMany(toQueue, { ordered: false });
+    } catch (err) {
+      console.error("Failed to queue WhatsApp messages:", err);
+      sent = 0;
+      failed += toQueue.length;
+      for (const r of results) if (r.status === "queued") r.status = "link";
+    }
   }
 
   return { sent, failed, noNumber, total: registrations.length, waLinks, results };

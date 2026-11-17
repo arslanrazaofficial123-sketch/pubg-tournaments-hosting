@@ -12,6 +12,7 @@ import {
   deleteRegistration,
   updateRegStats,
   updateRegSlot,
+  promoteRegs,
   notifyTournament,
 } from "../controllers/tournamentController.js";
 import { requireAuth, requireAdmin, requireStaff } from "../middleware/auth.js";
@@ -21,6 +22,7 @@ const router = Router();
 router.get("/", getTournaments);
 router.get("/registrations/export", requireStaff, exportRegistrations);
 router.get("/registrations", requireAuth, getRegistrations);
+router.post("/registrations/promote", requireStaff, promoteRegs);
 router.put("/registrations/:id/status", requireStaff, updateRegStatus);
 router.put("/registrations/:id/stats", requireStaff, updateRegStats);
 router.put("/registrations/:id/slot", requireStaff, updateRegSlot);

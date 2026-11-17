@@ -91,6 +91,7 @@ export interface Registration {
   totalPoints?: number;
   rank?: number;
   slotNumber?: number | null;
+  stage?: number;
 }
 
 export async function updateRegistrationStatus(
@@ -201,4 +202,12 @@ export async function exportRegistrations(tournamentId?: string): Promise<Blob> 
   }
 
   return response.blob();
+}
+
+/** Move teams to another stage (e.g. qualified teams to stage 2). */
+export async function promoteRegistrations(ids: string[], stage: number, group?: string): Promise<{ moved: number }> {
+  return apiClient<{ moved: number }>("/tournaments/registrations/promote", {
+    method: "POST",
+    body: JSON.stringify({ ids, stage, group }),
+  });
 }

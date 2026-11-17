@@ -1,0 +1,13 @@
+{
+  "name": "epix-wa-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Free WhatsApp sender for Epix Esports room ID/password messages. Runs on the organiser's PC.",
+  "scripts": { "start": "node index.js", "test": "node test.js" },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

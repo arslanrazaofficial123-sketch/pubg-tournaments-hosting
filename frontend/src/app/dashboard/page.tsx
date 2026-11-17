@@ -8,6 +8,7 @@ import { TournamentModal } from "@/features/tournaments/components/TournamentMod
 import { getSessionUser, isLoggedIn as checkLoggedIn, logout, setSession } from "@/lib/auth";
 import { isIntegerOnly, sanitizeIntegerInput } from "@/lib/validation";
 import { getTournaments, fetchAllRegistrations } from "@/services/api/tournaments";
+import { RevealGate } from "@/components/RevealGate";
 import { fetchMatches } from "@/services/api/matches";
 import { deleteAccount, linkUidToAccount } from "@/services/api/auth";
 import type { UserProfile } from "@/types/auth";
@@ -249,7 +250,7 @@ export default function DashboardPage() {
           approvedRegs.forEach((reg, idx) => {
             const tournamentMatches = matchesResults[idx] || [];
             const filtered = tournamentMatches.filter(
-              (m) => m.groups && m.groups.includes(reg.group)
+              (m) => (m.stage || 1) === (reg.stage || 1) && m.groups && m.groups.includes(reg.group)
             );
             filtered.forEach((m) => {
               playerMatches.push({
@@ -513,7 +514,8 @@ export default function DashboardPage() {
                     <span className="font-semibold text-text-primary">{nextMatch.time}</span>
                   </div>
                   {(() => {
-                    const canShow = canShowRoomDetails(nextMatch.date, nextMatch.time);
+                    const canShow = nextMatch.revealAt ? !nextMatch.locked : canShowRoomDetails(nextMatch.date, nextMatch.time);
+                                if (nextMatch.revealAt && nextMatch.locked) return <RevealGate revealAt={nextMatch.revealAt} tournamentId={nextMatch.tournamentId} matchId={nextMatch.id} />;
                     if (canShow) {
                       return (
                         <>

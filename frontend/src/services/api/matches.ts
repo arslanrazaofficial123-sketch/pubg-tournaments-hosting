@@ -4,6 +4,7 @@ export interface Match {
   id: string;
   tournamentId: string;
   day: number;
+  stage?: number;
   title: string;
   map: "Erangel" | "Miramar" | "Sanhok" | "Vikendi" | "Nusa" | "Karakin" | "Rondo";
   time: string;
@@ -13,11 +14,17 @@ export interface Match {
   roomPassword?: string;
   revealAt?: string;
   autoSend?: boolean;
+  locked?: boolean;
+  serverNow?: number;
   credentialsSentAt?: string;
   lastSendReport?: { at: string; by: string; total: number; sent: number; failed: number; noNumber: number } | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** How far this device's clock is from the server's, so the reveal countdown is the same for everyone. */
+let serverOffsetMs = 0;
+export function getServerOffset(): number { return serverOffsetMs; }
 
 export async function fetchMatches(tournamentId?: string, day?: number): Promise<Match[]> {
   try {
@@ -30,7 +37,10 @@ export async function fetchMatches(tournamentId?: string, day?: number): Promise
       url += `?${params.join("&")}`;
     }
 
-    return await apiClient<Match[]>(url);
+    const data = await apiClient<Match[]>(url);
+    const sn = data.find((m) => typeof m.serverNow === "number")?.serverNow;
+    if (sn) serverOffsetMs = sn - Date.now();
+    return data;
   } catch {
     return [];
   }
@@ -39,6 +49,7 @@ export async function fetchMatches(tournamentId?: string, day?: number): Promise
 export async function createMatch(payload: {
   tournamentId: string;
   day: number;
+  stage?: number;
   title: string;
   map: string;
   time: string;
@@ -64,6 +75,7 @@ export async function deleteMatch(matchId: string): Promise<{ success: boolean; 
 export async function updateMatch(
   matchId: string,
   payload: Partial<{
+    stage: number;
     title: string;
     map: string;
     time: string;

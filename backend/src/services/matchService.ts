@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 export async function createMatch(payload: {
   tournamentId: string;
   day: number;
+  stage?: number;
   title: string;
   map: string;
   time: string;
@@ -39,6 +40,7 @@ export async function deleteMatchById(matchId: string) {
 export async function updateMatchById(
   matchId: string,
   payload: Partial<{
+    stage: number;
     title: string;
     map: string;
     time: string;

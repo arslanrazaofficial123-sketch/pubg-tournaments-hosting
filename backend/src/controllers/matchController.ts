@@ -6,6 +6,8 @@ import {
   deleteMatchById,
   updateMatchById,
 } from "../services/matchService.js";
+import { verifyToken } from "../utils/jwt.js";
+import { maskMatch } from "../utils/revealMask.js";
 import { deliverMatchCredentials } from "../services/matchCredentialsService.js";
 
 export const getMatchesList = asyncHandler(async (req: Request, res: Response) => {
@@ -14,11 +16,29 @@ export const getMatchesList = asyncHandler(async (req: Request, res: Response) =
   const day = dayStr ? parseInt(dayStr, 10) : undefined;
 
   const matches = await getMatches(tournamentId, day);
-  res.json(matches);
+
+  /* staff see everything; players get the room ID/password only once the reveal time has passed */
+  let staff = false;
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) {
+    const decoded = verifyToken(auth.split(" ")[1]);
+    staff = decoded?.role === "admin" || decoded?.role === "partner";
+  }
+  const now = Date.now();
+  res.json(matches.map((m) => maskMatch(m as never, staff, now)));
 });
 
+
+/** Room ID + password saved with no reveal time set: send to every team right away (in the background). */
+function sendNowIfReady(m: { id?: string; roomId?: string; roomPassword?: string; revealAt?: string; autoSend?: boolean; credentialsSentAt?: string } | null) {
+  if (!m?.id || !m.roomId || !m.roomPassword || m.revealAt || m.autoSend === false || m.credentialsSentAt) return;
+  deliverMatchCredentials(m.id, { by: "auto-on-upload" })
+    .then((o) => console.log(`[match-credentials] on-upload ${m.id}: ${o.message}`))
+    .catch((e) => console.error("[match-credentials] on-upload failed:", e));
+}
+
 export const createNewMatch = asyncHandler(async (req: Request, res: Response) => {
-  const { tournamentId, day, title, map, time, date, groups, roomId, roomPassword, revealAt } = req.body;
+  const { tournamentId, day, stage, title, map, time, date, groups, roomId, roomPassword, revealAt } = req.body;
 
   if (!tournamentId || day === undefined || !title || !map || !time || !date) {
     res.status(400).json({ message: "tournamentId, day, title, map, time, and date are required fields" });
@@ -28,6 +48,7 @@ export const createNewMatch = asyncHandler(async (req: Request, res: Response) =
   const match = await createMatch({
     tournamentId,
     day: parseInt(day, 10),
+    stage: Math.max(1, parseInt(stage, 10) || 1),
     title,
     map,
     time,
@@ -38,6 +59,7 @@ export const createNewMatch = asyncHandler(async (req: Request, res: Response) =
     revealAt: revealAt || "",
   });
 
+  sendNowIfReady(match as never);
   res.status(201).json(match);
 });
 
@@ -58,6 +80,7 @@ export const updateExistingMatch = asyncHandler(async (req: Request, res: Respon
     res.status(404).json({ message: "Match not found" });
     return;
   }
+  sendNowIfReady(match as never);
   res.json(match);
 });
 

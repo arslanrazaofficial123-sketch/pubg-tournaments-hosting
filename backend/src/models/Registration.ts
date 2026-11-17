@@ -33,6 +33,8 @@ const registrationSchema = new Schema(
     totalPoints: { type: Number, default: 0 },
     rank: { type: Number, default: 0 },
     slotNumber: { type: Number, default: null },
+    // tournament stage this team is currently in (1 = first stage); admin moves qualified teams up
+    stage: { type: Number, default: 1 },
   },
   { timestamps: true },
 );

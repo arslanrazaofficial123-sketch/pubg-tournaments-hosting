@@ -5,6 +5,8 @@ const matchSchema = new Schema(
     id: { type: String, required: true, unique: true },
     tournamentId: { type: String, required: true },
     day: { type: Number, required: true },
+    // tournament stage this match belongs to; only teams that are in this stage see it and get its room ID
+    stage: { type: Number, default: 1 },
     title: { type: String, required: true },
     map: {
       type: String,

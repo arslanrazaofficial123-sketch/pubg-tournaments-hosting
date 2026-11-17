@@ -12,6 +12,7 @@ import dataDeletionRoutes from "./dataDeletionRoutes.js";
 import teamDataRoutes from "./teamDataRoutes.js";
 import productionRoutes from "./productionRoutes.js";
 import showcaseRoutes from "./showcaseRoutes.js";
+import waRoutes from "./waRoutes.js";
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.use("/data-deletion", dataDeletionRoutes);
 router.use("/team-data", teamDataRoutes);
 router.use("/production", productionRoutes);
 router.use("/showcase", showcaseRoutes);
+router.use("/wa", waRoutes);
 
 router.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok" });

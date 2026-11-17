@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { getSessionUser, isLoggedIn as checkLoggedIn } from "@/lib/auth";
 import { getTournamentById, fetchAllRegistrations, type Registration } from "@/services/api/tournaments";
+import { RevealGate } from "@/components/RevealGate";
 import { fetchMatches, type Match } from "@/services/api/matches";
 import type { Tournament } from "@/types/tournament";
 import { cn } from "@/lib/utils";
@@ -183,7 +184,7 @@ export default function TournamentTeamPage() {
 
         setRegistration(mappedReg);
 
-        const groupMatches = allMatches.filter((m) => m.groups && m.groups.includes(myReg.group));
+        const groupMatches = allMatches.filter((m) => (m.stage || 1) === (myReg.stage || 1) && m.groups && m.groups.includes(myReg.group));
         setMatches(groupMatches);
 
         const approvedRegs = regs.filter(
@@ -567,7 +568,8 @@ export default function TournamentTeamPage() {
                                 <span className="font-semibold text-text-primary">{match.time}</span>
                               </div>
                               {(() => {
-                                const canShow = canShowRoomDetails(match.date, match.time);
+                                const canShow = match.revealAt ? !match.locked : canShowRoomDetails(match.date, match.time);
+                                if (match.revealAt && match.locked) return <RevealGate revealAt={match.revealAt} tournamentId={match.tournamentId} matchId={match.id} />;
                                 if (canShow) {
                                   return (
                                     <>

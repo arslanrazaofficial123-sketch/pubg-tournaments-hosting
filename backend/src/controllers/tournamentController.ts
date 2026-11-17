@@ -15,6 +15,7 @@ import {
   deleteRegistrationById,
   updateRegistrationStats,
   updateRegistrationSlot,
+  promoteRegistrations,
 } from "../services/tournamentService.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { sendRegistrationNotificationEmail, sendTournamentNotificationEmail, type TournamentNotificationData } from "../utils/email.js";
@@ -364,3 +365,13 @@ export const exportRegistrations = asyncHandler(
   },
 );
 
+
+export const promoteRegs = asyncHandler(async (req: Request, res: Response) => {
+  const { ids, stage, group } = req.body ?? {};
+  if (!Array.isArray(ids) || ids.length === 0 || !Number.isFinite(Number(stage))) {
+    res.status(400).json({ message: "ids (array) and stage (number) are required" });
+    return;
+  }
+  const moved = await promoteRegistrations(ids.map(String), Number(stage), typeof group === "string" && group ? group : undefined);
+  res.json({ moved });
+});

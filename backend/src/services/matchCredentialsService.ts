@@ -1,6 +1,7 @@
 import { MatchModel } from "../models/Match.js";
 import { TournamentModel } from "../models/Tournament.js";
 import { RegistrationModel } from "../models/Registration.js";
+import { env } from "../config/env.js";
 import { sendMatchCredentialsWhatsApp, type SendResult } from "../utils/whatsapp.js";
 
 export interface DeliverOutcome {
@@ -59,7 +60,11 @@ export async function deliverMatchCredentials(
   const tournament = await TournamentModel.findOne({ id: match.tournamentId }).lean();
   if (!tournament) return { ok: false, code: "no-tournament", message: "Tournament not found." };
 
+  /* only teams that are in this match's stage (and in its groups) get the ID and password */
+  const stage = Number(match.stage) || 1;
   const query: Record<string, any> = { tournamentId: match.tournamentId, status: "approved" };
+  if (stage === 1) query.$or = [{ stage: 1 }, { stage: { $exists: false } }, { stage: null }];
+  else query.stage = stage;
   if (match.groups && match.groups.length > 0) query.group = { $in: match.groups };
 
   const registrations = await RegistrationModel.find(query).lean();
@@ -80,6 +85,7 @@ export async function deliverMatchCredentials(
       matchDate: match.date,
       slotNumber: reg.slotNumber ?? null,
       group: reg.group,
+      matchId: match.id,
     })),
   );
 
@@ -97,7 +103,7 @@ export async function deliverMatchCredentials(
 
   return {
     ok: true,
-    message: `WhatsApp credentials sent. ${result.sent} delivered, ${result.failed} need a manual link, ${result.noNumber} have no number.`,
+    message: `WhatsApp credentials sent. ${result.sent} ${env.waGatewaySecret ? "queued for WhatsApp" : "delivered"}, ${result.failed} need a manual link, ${result.noNumber} have no number.`,
     sentAt: at,
     result,
   };
@@ -108,9 +114,13 @@ export async function deliverMatchCredentials(
  * credentials by itself, so a team gets the room exactly at the time the admin set.
  */
 let timer: NodeJS.Timeout | null = null;
+let running = false;
+const armed = new Set<string>();
 export function startMatchCredentialsScheduler() {
   if (timer) return;
   const tick = async () => {
+    if (running) return;           // never overlap two checks
+    running = true;
     try {
       const due = await MatchModel.find({
         autoSend: { $ne: false },
@@ -118,17 +128,34 @@ export function startMatchCredentialsScheduler() {
         $or: [{ credentialsSentAt: "" }, { credentialsSentAt: null }, { credentialsSentAt: { $exists: false } }],
       }).lean();
 
-      for (const m of due) {
-        if (!m.roomId || !m.roomPassword) continue;
-        if (!isRevealed(m.revealAt)) continue;
+      await Promise.all(due.map(async (m) => {
+        if (!m.roomId || !m.roomPassword) return;
+        if (!isRevealed(m.revealAt)) {
+          /* reveal is less than ~1.5s away: arm an exact timer so the send fires on the dot */
+          const wait = new Date(m.revealAt).getTime() - Date.now();
+          if (wait > 0 && wait <= 1_500 && !armed.has(m.id)) {
+            armed.add(m.id);
+            setTimeout(() => {
+              deliverMatchCredentials(m.id, { by: "auto" })
+                .then((out) => console.log(`[match-credentials] auto-send ${m.id}: ${out.message}`))
+                .catch((e) => console.error("[match-credentials] timed send failed:", e))
+                .finally(() => armed.delete(m.id));
+            }, wait);
+          }
+          return;
+        }
+        if (armed.has(m.id)) return;
         const out = await deliverMatchCredentials(m.id, { by: "auto" });
         console.log(`[match-credentials] auto-send ${m.id}: ${out.message}`);
-      }
+      }));
     } catch (err) {
       console.error("[match-credentials] scheduler error:", err);
+    } finally {
+      running = false;
     }
   };
-  timer = setInterval(tick, 30_000);
-  setTimeout(tick, 5_000);
-  console.log("[match-credentials] auto-send scheduler started (checks every 30s)");
+  /* checks every second, so messages go out within about a second of the reveal time */
+  timer = setInterval(tick, 1_000);
+  setTimeout(tick, 2_000);
+  console.log("[match-credentials] auto-send scheduler started (checks every 1s)");
 }

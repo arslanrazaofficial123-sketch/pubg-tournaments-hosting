@@ -3,7 +3,7 @@
 import { ShowcaseAdmin } from "@/features/showcase";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, exportRegistrations, type Registration } from "@/services/api/tournaments";
+import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, promoteRegistrations, sendTournamentNotifications, exportRegistrations, type Registration } from "@/services/api/tournaments";
 import { fetchMatches, createMatch, deleteMatch, updateMatch, sendMatchCredentials } from "@/services/api/matches";
 import { getAdminReviews, updateReviewStatus, deleteReview } from "@/services/api/reviews";
 import type { Review } from "@/types/review";
@@ -163,6 +163,7 @@ export default function AdminDashboard() {
   const [newMatchRoomId, setNewMatchRoomId] = useState("");
   const [newMatchRoomPassword, setNewMatchRoomPassword] = useState("");
   const [newMatchRevealAt, setNewMatchRevealAt] = useState("");
+  const [newMatchStage, setNewMatchStage] = useState(1);
   const [selectedGroups, setSelectedGroups] = useState<string[]>(["Group A"]);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
 
@@ -528,12 +529,14 @@ export default function AdminDashboard() {
           roomId: newMatchRoomId,
           roomPassword: newMatchRoomPassword,
           revealAt: newMatchRevealAt || "",
+          stage: newMatchStage,
         });
         setEditingMatchId(null);
       } else {
         await createMatch({
           tournamentId: activeMatchTournamentId,
           day: activeMatchDay,
+          stage: newMatchStage,
           title: newMatchTitle,
           map: newMatchMap,
           time: timePart || "20:00",
@@ -598,6 +601,7 @@ export default function AdminDashboard() {
     setNewMatchRoomId(match.roomId || "");
     setNewMatchRoomPassword(match.roomPassword || "");
     setNewMatchRevealAt(match.revealAt || "");
+    setNewMatchStage(match.stage || 1);
     setIsMatchModalOpen(true);
   };
 
@@ -798,6 +802,20 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Failed to save slot:", err);
       showAlert("Failed to save slot.", "error");
+    }
+  };
+
+  const handlePromote = async (reg: Registration, delta: number) => {
+    const next = Math.max(1, (reg.stage || 1) + delta);
+    if (next === (reg.stage || 1)) return;
+    try {
+      await promoteRegistrations([reg.id], next);
+      const regList = await fetchAllRegistrations();
+      setRegistrations(regList);
+      showAlert(`${reg.teamName || "Team"} moved to Stage ${next}.`, "success");
+    } catch (err) {
+      console.error("Failed to change stage:", err);
+      showAlert("Failed to change stage.", "error");
     }
   };
 
@@ -2360,6 +2378,7 @@ export default function AdminDashboard() {
                                       <th className="px-6 py-4">Team/Player</th>
                                       <th className="px-6 py-4">Members</th>
                                       <th className="px-6 py-4 w-20">Slot</th>
+                                      <th className="px-6 py-4 w-32">Stage</th>
                                       <th className="px-6 py-4 w-24">Kills</th>
                                       <th className="px-6 py-4 w-28">Chicken Dinner</th>
                                       <th className="px-6 py-4 w-28">Total Points</th>
@@ -2382,6 +2401,13 @@ export default function AdminDashboard() {
                                                   <span className="text-accent font-semibold">P{idx + 1}:</span> {m.inGameName}
                                                 </div>
                                               ))}
+                                            </div>
+                                          </td>
+                                          <td className="px-6 py-4">
+                                            <div className="flex items-center gap-1" title="Move this team to another tournament stage">
+                                              <button onClick={() => handlePromote(reg, -1)} disabled={(reg.stage || 1) <= 1} className="px-1.5 text-xs text-text-primary/50 hover:text-text-primary disabled:opacity-20 cursor-pointer">▼</button>
+                                              <span className="rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-xs font-bold text-accent">Stage {reg.stage || 1}</span>
+                                              <button onClick={() => handlePromote(reg, 1)} className="px-1.5 text-xs text-green-400 hover:text-green-300 cursor-pointer" title="Send to next stage">▲</button>
                                             </div>
                                           </td>
                                           <td className="px-6 py-4">
@@ -3215,6 +3241,19 @@ export default function AdminDashboard() {
                 className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent font-mono"
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+              Stage (only teams in this stage see this match and get its ID/Pass)
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={newMatchStage}
+              onChange={(e) => setNewMatchStage(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent font-mono"
+            />
           </div>
 
           <div className="space-y-1">

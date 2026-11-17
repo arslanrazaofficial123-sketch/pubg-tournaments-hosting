@@ -24,6 +24,7 @@ export const env = {
   productionPassword: process.env.PRODUCTION_PASSWORD || "epixprod",
   whatsappApiToken: process.env.WHATSAPP_API_TOKEN || "",
   whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || "",
+  waGatewaySecret: process.env.WA_GATEWAY_SECRET || "",
   whatsappApiKey: process.env.WHATSAPP_API_KEY || "",
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || "",

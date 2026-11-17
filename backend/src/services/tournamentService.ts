@@ -402,3 +402,12 @@ export async function updateRegistrationSlot(
   return doc.toObject();
 }
 
+
+/** Moves the chosen teams to another stage (e.g. qualified teams to stage 2), optionally into a group of that stage. */
+export async function promoteRegistrations(ids: string[], stage: number, group?: string): Promise<number> {
+  const st = Math.max(1, Math.floor(Number(stage)) || 1);
+  const set: Record<string, unknown> = { stage: st };
+  if (group) set.group = group;
+  const r = await RegistrationModel.updateMany({ id: { $in: ids } }, { $set: set });
+  return r.modifiedCount;
+}
