@@ -12,7 +12,7 @@ const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-let apiWarmedUp = false;
+let lastWarmUpAt = 0;
 
 /**
  * The backend runs as a serverless function, so the first request after idle can
@@ -21,8 +21,10 @@ let apiWarmedUp = false;
  * makes the actual sign-in request land on a warm instance.
  */
 export function warmUpApi() {
-  if (apiWarmedUp || typeof window === "undefined") return;
-  apiWarmedUp = true;
+  if (typeof window === "undefined") return;
+  const now = Date.now();
+  if (now - lastWarmUpAt < 3 * 60 * 1000) return;
+  lastWarmUpAt = now;
   fetch(`${API_BASE_URL}/health`, { cache: "no-store" }).catch(() => {});
 }
 
