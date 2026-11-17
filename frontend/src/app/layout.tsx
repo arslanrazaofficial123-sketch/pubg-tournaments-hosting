@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import { Footer } from "@/components/layout/Footer";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { AlertProvider } from "@/components/ui";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -38,7 +38,7 @@ export default function RootLayout({
           <ErrorBoundary>
             <ActivityTrackerInitializer />
             <main className="flex-1">{children}</main>
-            <Footer />
+            <SiteFooter />
           </ErrorBoundary>
         </AlertProvider>
         <Analytics />

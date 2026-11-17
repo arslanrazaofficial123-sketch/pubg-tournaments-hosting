@@ -13,13 +13,11 @@ export async function connectDatabase() {
   await mongoose.connect(env.mongoUri, { maxPoolSize: 10, minPoolSize: 0, maxIdleTimeMS: 30000, serverSelectionTimeoutMS: 15000 });
   console.log("MongoDB connected");
   if (!indexesSynced) {
-    try {
-      await UserModel.syncIndexes();
-      indexesSynced = true;
-      console.log("UserModel indexes synchronized successfully");
-    } catch (error) {
-      console.error("Failed to synchronize UserModel indexes:", error);
-    }
+    indexesSynced = true;
+    // Index maintenance must never block a request (cold starts used to wait 10-30s here).
+    UserModel.syncIndexes()
+      .then(() => console.log("UserModel indexes synchronized successfully"))
+      .catch((error) => console.error("Failed to synchronize UserModel indexes:", error));
   }
 }
 

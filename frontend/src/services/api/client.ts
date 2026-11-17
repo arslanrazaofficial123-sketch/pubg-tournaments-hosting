@@ -1,3 +1,5 @@
+import { getStoredSessionRaw } from "@/lib/auth";
+
 const getApiBaseUrl = (): string => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -48,7 +50,7 @@ export async function apiClient<T>(
     if (adminToken) {
       headers["Authorization"] = `Bearer ${adminToken}`;
     } else {
-      const session = sessionStorage.getItem("epix_session_user");
+      const session = getStoredSessionRaw();
       if (session) {
         try {
           const parsed = JSON.parse(session);

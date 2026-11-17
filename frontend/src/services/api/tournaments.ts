@@ -1,4 +1,5 @@
 import type { Tournament, TournamentStatus } from "@/types/tournament";
+import { getStoredSessionRaw } from "@/lib/auth";
 import { apiClient } from "./client";
 
 export async function getTournaments(): Promise<Tournament[]> {
@@ -176,7 +177,7 @@ export async function exportRegistrations(tournamentId?: string): Promise<Blob> 
     if (adminToken) {
       headers["Authorization"] = `Bearer ${adminToken}`;
     } else {
-      const session = sessionStorage.getItem("epix_session_user");
+      const session = getStoredSessionRaw();
       if (session) {
         try {
           const parsed = JSON.parse(session);

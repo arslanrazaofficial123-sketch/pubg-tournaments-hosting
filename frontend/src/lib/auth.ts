@@ -11,16 +11,39 @@ function dispatchAuthChange() {
   }
 }
 
+/**
+ * The session lives in localStorage so a reload, a new tab or a fresh visit keeps
+ * the user signed in. Older builds stored it in sessionStorage, so reads fall back
+ * to that and migrate the value forward.
+ */
+export function getStoredSessionRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(SESSION_USER_KEY);
+  if (stored) return stored;
+
+  const legacy = sessionStorage.getItem(SESSION_USER_KEY);
+  if (legacy) {
+    localStorage.setItem(SESSION_USER_KEY, legacy);
+    if (sessionStorage.getItem(LEGACY_LOGIN_KEY) === "true") {
+      localStorage.setItem(LEGACY_LOGIN_KEY, "true");
+    }
+    sessionStorage.removeItem(SESSION_USER_KEY);
+    sessionStorage.removeItem(LEGACY_LOGIN_KEY);
+    return legacy;
+  }
+  return null;
+}
+
 export function updateActivity(): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
 }
 
 export function checkInactivity(): void {
   if (typeof window === "undefined") return;
   if (!isLoggedIn()) return;
 
-  const lastActivityStr = sessionStorage.getItem(LAST_ACTIVITY_KEY);
+  const lastActivityStr = localStorage.getItem(LAST_ACTIVITY_KEY);
   if (lastActivityStr) {
     const lastActivity = parseInt(lastActivityStr, 10);
     if (Date.now() - lastActivity > INACTIVITY_TIMEOUT) {
@@ -33,8 +56,10 @@ export function checkInactivity(): void {
 
 export function setSession(user: UserProfile): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
-  sessionStorage.setItem(LEGACY_LOGIN_KEY, "true");
+  localStorage.setItem(SESSION_USER_KEY, JSON.stringify(user));
+  localStorage.setItem(LEGACY_LOGIN_KEY, "true");
+  sessionStorage.removeItem(SESSION_USER_KEY);
+  sessionStorage.removeItem(LEGACY_LOGIN_KEY);
   updateActivity();
   dispatchAuthChange();
 }
@@ -42,7 +67,7 @@ export function setSession(user: UserProfile): void {
 export function getSessionUser(): UserProfile | null {
   if (typeof window === "undefined") return null;
   checkInactivity();
-  const raw = sessionStorage.getItem(SESSION_USER_KEY);
+  const raw = getStoredSessionRaw();
   if (!raw) return null;
   try {
     return JSON.parse(raw) as UserProfile;
@@ -53,14 +78,18 @@ export function getSessionUser(): UserProfile | null {
 
 export function isLoggedIn(): boolean {
   if (typeof window === "undefined") return false;
-  const loggedIn = sessionStorage.getItem(LEGACY_LOGIN_KEY) === "true";
+  const loggedIn =
+    localStorage.getItem(LEGACY_LOGIN_KEY) === "true" ||
+    sessionStorage.getItem(LEGACY_LOGIN_KEY) === "true";
   if (!loggedIn) return false;
-  const raw = sessionStorage.getItem(SESSION_USER_KEY);
-  return !!raw;
+  return !!getStoredSessionRaw();
 }
 
 export function logout(): void {
   if (typeof window === "undefined") return;
+  localStorage.removeItem(SESSION_USER_KEY);
+  localStorage.removeItem(LEGACY_LOGIN_KEY);
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
   sessionStorage.removeItem(SESSION_USER_KEY);
   sessionStorage.removeItem(LEGACY_LOGIN_KEY);
   sessionStorage.removeItem(LAST_ACTIVITY_KEY);
