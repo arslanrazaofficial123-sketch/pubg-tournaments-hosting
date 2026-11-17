@@ -189,7 +189,7 @@ export function SiteNavigation() {
             </span>
           </Link>
 
-          <ul className="flex flex-1 items-center justify-end gap-1 overflow-x-auto py-3 sm:gap-2">
+          <ul className="hidden flex-1 items-center justify-end gap-1 overflow-x-auto py-3 sm:gap-2 lg:flex">
             {navItems.map((item) => renderItem(item, false))}
           </ul>
 
@@ -198,7 +198,7 @@ export function SiteNavigation() {
             onClick={() => setIsMenuOpen((v) => !v)}
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={isMenuOpen}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-text-primary transition-colors hover:border-accent/40 hover:text-accent md:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-text-primary transition-colors hover:border-accent/40 hover:text-accent lg:hidden"
           >
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -208,11 +208,11 @@ export function SiteNavigation() {
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
               onClick={() => setIsMenuOpen(false)}
             />
             {/* Mobile menu panel */}
-            <ul className="animate-fade-in-up fixed inset-x-0 top-[57px] z-50 flex max-h-[calc(100vh-57px)] flex-col gap-1 overflow-y-auto border-t border-white/5 bg-bg-primary/98 px-4 pb-6 pt-3 shadow-2xl shadow-black/40 md:hidden">
+            <ul className="animate-fade-in-up fixed inset-x-0 top-[57px] z-50 flex max-h-[calc(100vh-57px)] flex-col gap-1 overflow-y-auto border-t border-white/5 bg-bg-primary/98 px-4 pb-6 pt-3 shadow-2xl shadow-black/40 lg:hidden">
               {navItems.map((item) => renderItem(item, true))}
             </ul>
           </>
