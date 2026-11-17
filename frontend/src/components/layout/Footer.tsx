@@ -8,7 +8,6 @@ const FOOTER_LINKS = [
   { label: "About Us", href: "/about" },
   { label: "Contact Us", href: "/contact" },
   { label: "Rules & Terms", href: "/rules-terms" },
-  { label: "Link UID", href: "/link-uid" },
   { label: "Shop", href: "/shop" },
   { label: "Order History", href: "/shop/history" },
   { label: "Request Data Deletion", href: "/data-deletion" },
