@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { isLoggedIn as checkLoggedIn, getSessionUser } from "@/lib/auth";
+import { usePathname, useRouter } from "next/navigation";
+import { isLoggedIn as checkLoggedIn, getSessionUser, logout } from "@/lib/auth";
 import { getTournaments, fetchAllRegistrations } from "@/services/api/tournaments";
 import { warmUpApi } from "@/services/api";
 import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 
 import { useEffect, useState } from "react";
 
@@ -26,6 +26,7 @@ let cachedApprovedRegistrations: any[] | null = null;
 
 export function SiteNavigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [approvedRegistrations, setApprovedRegistrations] = useState<any[]>([]);
@@ -268,6 +269,23 @@ export function SiteNavigation() {
 
         <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {navItems.map((item) => renderItem(item, true))}
+          {isMounted && isLoggedIn && (
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  setIsLoggedIn(false);
+                  setIsMenuOpen(false);
+                  router.push("/");
+                }}
+                className="mt-2 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </li>
+          )}
         </ul>
 
         <div className="border-t border-white/10 px-4 py-4">
