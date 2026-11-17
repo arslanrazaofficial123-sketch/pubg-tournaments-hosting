@@ -81,7 +81,7 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
               className={cn(
                 "rounded-md px-3.5 py-1.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
                 activeSize === size
-                  ? "bg-linear-to-r from-accent to-cyan-500 text-bg-primary shadow-md shadow-accent/30"
+                  ? "bg-linear-to-r from-accent to-accent-2 text-bg-primary shadow-md shadow-accent/30"
                   : "text-text-primary/70 hover:bg-white/5 hover:text-text-primary active:scale-95",
               )}
             >

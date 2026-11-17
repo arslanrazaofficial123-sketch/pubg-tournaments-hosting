@@ -13,7 +13,7 @@ const VARIANT_STYLES: Record<ButtonVariant, string> = {
   primary:
     "bg-accent text-text-primary hover:bg-accent-hover",
   secondary:
-    "border border-white/15 bg-bg-secondary/80 text-text-primary hover:border-accent/40 hover:bg-[#052240]",
+    "border border-white/15 bg-bg-secondary/80 text-text-primary hover:border-accent/40 hover:bg-[#1d1208]",
   outline:
     "border border-accent bg-accent/10 text-accent hover:bg-accent/20",
   ghost:

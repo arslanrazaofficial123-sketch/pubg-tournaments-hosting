@@ -185,8 +185,8 @@ export default function AboutPage() {
                 key={i}
                 className="group relative overflow-hidden rounded-2xl border border-border bg-bg-primary/40 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5"
               >
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-accent to-cyan-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <div className="bg-linear-to-br from-accent to-cyan-400 bg-clip-text text-4xl font-black text-transparent">
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-accent to-accent-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="bg-linear-to-br from-accent to-accent-2 bg-clip-text text-4xl font-black text-transparent">
                   {step.num}
                 </div>
                 <div className="mt-3 flex items-center gap-2.5">

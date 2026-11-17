@@ -66,7 +66,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
                   "h-full rounded-full transition-all duration-700",
                   slotPct >= 100
                     ? "bg-linear-to-r from-emerald-400 to-emerald-500"
-                    : "bg-linear-to-r from-accent to-cyan-400",
+                    : "bg-linear-to-r from-accent to-accent-2",
                 )}
                 style={{ width: `${slotPct}%` }}
               />
@@ -98,7 +98,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
               Registrations Closed
             </span>
           ) : (
-            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-linear-to-r from-accent to-cyan-500 px-2.5 py-1 text-[10px] font-bold text-bg-primary shadow-md shadow-accent/25 transition-all group-hover:shadow-accent/50 whitespace-nowrap cursor-pointer sm:px-3.5 sm:py-1.5 sm:text-xs">
+            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-linear-to-r from-accent to-accent-2 px-2.5 py-1 text-[10px] font-bold text-bg-primary shadow-md shadow-accent/25 transition-all group-hover:shadow-accent/50 whitespace-nowrap cursor-pointer sm:px-3.5 sm:py-1.5 sm:text-xs">
               Register Now
             </span>
           )}

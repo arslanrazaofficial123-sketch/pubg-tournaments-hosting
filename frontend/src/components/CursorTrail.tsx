@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
-const COLORS = ["#1FAEE9", "#E6F4FB", "#7FE0FF"];
+const COLORS = ["#FF7A1A", "#FFF3E0", "#FFC02E"];
 const LENGTH = 18;
 
 /** Glowing trail that follows the mouse (desktop only, off in the admin panel). */

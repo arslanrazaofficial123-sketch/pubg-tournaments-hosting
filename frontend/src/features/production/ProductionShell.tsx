@@ -70,7 +70,7 @@ export function ProductionShell({
     router.replace("/production");
   };
   return (
-    <div className="min-h-screen bg-bg-primary bg-[radial-gradient(ellipse_at_top_left,rgba(31,174,233,0.08),transparent_55%)]">
+    <div className="min-h-screen bg-bg-primary bg-[radial-gradient(ellipse_at_top_left,rgba(255, 122, 26,0.08),transparent_55%)]">
       <header className="border-b border-border/60">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <Link href={showLogout ? "/production/desk" : "/"} className="flex items-center gap-3">

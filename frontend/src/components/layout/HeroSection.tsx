@@ -51,7 +51,7 @@ export function HeroSection({ onOpenAuth }: HeroSectionProps) {
 
       <div className="absolute inset-0 bg-linear-to-b from-bg-primary/10 via-bg-primary/40 to-bg-primary" />
       <div className="absolute inset-x-0 bottom-0 h-28 sm:h-40 bg-linear-to-t from-bg-primary via-bg-primary/95 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(31,174,233,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(31,174,233,0.07)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(70%_80%_at_50%_30%,#000_30%,transparent_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(rgba(255, 122, 26,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255, 122, 26,0.07)_1px,transparent_1px)] [background-size:44px_44px] [mask-image:radial-gradient(70%_80%_at_50%_30%,#000_30%,transparent_100%)]" />
 
       <div className="relative mx-auto flex h-full max-w-7xl items-end px-4 pb-6 sm:px-6 sm:pb-12 lg:px-8">
         <div className="flex flex-row w-full items-end justify-between gap-2 sm:gap-4">
@@ -62,7 +62,7 @@ export function HeroSection({ onOpenAuth }: HeroSectionProps) {
                 alt="PUBG Mobile Logo"
                 fill
                 sizes="(max-width: 640px) 64px, 150px"
-                className="object-contain object-left-bottom drop-shadow-[0_0_18px_rgba(31,174,233,0.35)]"
+                className="object-contain object-left-bottom drop-shadow-[0_0_18px_rgba(255, 122, 26,0.35)]"
               />
             </div>
 
