@@ -119,6 +119,29 @@ export function SiteNavigation() {
     };
   }, []);
 
+  // Close the side menu whenever the route changes.
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [pathname]);
+
+  // Escape closes the side menu; page scrolling is locked while it is open.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMenuOpen]);
+
   const navItems = isMounted && isLoggedIn
     ? [
         { label: "Tournaments", href: "/" },
@@ -171,11 +194,11 @@ export function SiteNavigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-white/10 bg-black/55 backdrop-blur-xl">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="flex shrink-0 items-center gap-2">
-            <div className="relative h-9 w-9 sm:h-11 sm:w-11 drop-shadow-[0_0_12px_rgba(255,122,26,0.5)]">
+    <>
+      <nav className="sticky top-0 z-40 border-b border-white/10 bg-black/60 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex shrink-0 items-center gap-2" onClick={() => setIsMenuOpen(false)}>
+            <div className="relative h-9 w-9 drop-shadow-[0_0_12px_rgba(255,122,26,0.5)] sm:h-11 sm:w-11">
               <Image
                 src="/images/logo.png"
                 alt="EPIX Esports logo"
@@ -184,40 +207,76 @@ export function SiteNavigation() {
                 className="object-contain"
               />
             </div>
-            <span className="hidden text-sm font-black uppercase tracking-wider text-text-primary md:block">
+            <span className="hidden text-sm font-black uppercase tracking-wider text-text-primary sm:block">
               EPIX Esports
             </span>
           </Link>
 
-          <ul className="hidden flex-1 items-center justify-end gap-1 overflow-x-auto py-3 sm:gap-2 lg:flex">
-            {navItems.map((item) => renderItem(item, false))}
-          </ul>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={isMounted && isLoggedIn ? "/dashboard" : "/login"}
+              className="bg-accent inline-flex h-10 items-center rounded-full px-4 text-xs font-bold uppercase tracking-wider sm:px-5 sm:text-sm"
+            >
+              {isMounted && isLoggedIn ? "Dashboard" : "Register"}
+            </Link>
 
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((v) => !v)}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-text-primary transition-colors hover:border-accent/40 hover:text-accent"
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Backdrop for the side menu */}
+      <div
+        aria-hidden="true"
+        onClick={() => setIsMenuOpen(false)}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300",
+          isMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+      />
+
+      {/* Side menu */}
+      <aside
+        aria-hidden={!isMenuOpen}
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 flex w-[min(86vw,360px)] flex-col border-l border-white/10 bg-[#0b0806]/95 shadow-2xl shadow-black/60 backdrop-blur-xl transition-transform duration-300 ease-out",
+          isMenuOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <span className="text-xs font-bold uppercase tracking-[.2em] text-accent">Menu</span>
           <button
             type="button"
-            onClick={() => setIsMenuOpen((v) => !v)}
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={isMenuOpen}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-text-primary transition-colors hover:border-accent/40 hover:text-accent lg:hidden"
+            onClick={() => setIsMenuOpen(false)}
+            aria-label="Close menu"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-text-primary transition-colors hover:border-accent/40 hover:text-accent"
           >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {isMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-              onClick={() => setIsMenuOpen(false)}
-            />
-            {/* Mobile menu panel */}
-            <ul className="animate-fade-in-up fixed inset-x-0 top-[57px] z-50 flex max-h-[calc(100vh-57px)] flex-col gap-1 overflow-y-auto border-t border-white/5 bg-bg-primary/98 px-4 pb-6 pt-3 shadow-2xl shadow-black/40 lg:hidden">
-              {navItems.map((item) => renderItem(item, true))}
-            </ul>
-          </>
-        )}
-      </div>
-    </nav>
+        <ul className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
+          {navItems.map((item) => renderItem(item, true))}
+        </ul>
+
+        <div className="border-t border-white/10 px-4 py-4">
+          <Link
+            href={isMounted && isLoggedIn ? "/dashboard" : "/login"}
+            onClick={() => setIsMenuOpen(false)}
+            className="bg-accent flex h-11 w-full items-center justify-center rounded-full text-sm font-bold uppercase tracking-wider"
+          >
+            {isMounted && isLoggedIn ? "Dashboard" : "Register"}
+          </Link>
+        </div>
+      </aside>
+    </>
   );
 }
