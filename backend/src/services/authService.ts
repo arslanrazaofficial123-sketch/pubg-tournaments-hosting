@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 import { UserModel } from "../models/User.js";
 import { lookupPlayerByUid } from "./playerLookupService.js";
@@ -109,6 +110,29 @@ export async function loginUser(
   if (!isValid) return null;
 
   return toUserProfile(doc);
+}
+
+/**
+ * Email + password sign-up. A placeholder uid is generated until the player
+ * links their PUBG UID from the team data page.
+ */
+export async function registerEmailUser(payload: {
+  email: string;
+  password: string;
+}): Promise<UserProfile> {
+  const email = payload.email.trim().toLowerCase();
+  const existing = await UserModel.findOne({ email });
+
+  // Never attach a password to an existing account here: the email is not verified, so anyone could
+  // take over a Google account. Google users add a password from Profile > Set password instead.
+  if (existing) throw new Error("EMAIL_ALREADY_EXISTS");
+
+  const created = await UserModel.create({
+    uid: `e-${crypto.randomBytes(12).toString("hex")}`,
+    email,
+    password: await bcrypt.hash(payload.password, SALT_ROUNDS),
+  });
+  return toUserProfile(created);
 }
 
 export async function findUserByUid(uid: string): Promise<UserProfile | null> {

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isLoggedIn as checkLoggedIn, setSession } from "@/lib/auth";
-import { ApiError, googleSignIn, loginAccount } from "@/services/api";
+import { ApiError, googleSignIn, loginAccount, registerEmailAccount } from "@/services/api";
 import { AuthFormLayout } from "./AuthFormLayout";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
@@ -23,6 +23,9 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [confirm, setConfirm] = useState("");
+  const isSignup = mode === "signup";
 
   useEffect(() => {
     if (!onSuccess && checkLoggedIn()) {
@@ -76,10 +79,23 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
       return;
     }
 
+    if (isSignup) {
+      if (password.length < 6) {
+        setSubmitError("Password must be at least 6 characters.");
+        return;
+      }
+      if (password !== confirm) {
+        setSubmitError("Passwords do not match.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      const user = await loginAccount({ email: normalizedEmail, password });
+      const user = isSignup
+        ? await registerEmailAccount({ email: normalizedEmail, password })
+        : await loginAccount({ email: normalizedEmail, password });
       setSession(user);
       onSuccess?.();
       router.replace("/dashboard");
@@ -87,7 +103,7 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
       if (error instanceof ApiError) {
         setSubmitError(error.message);
       } else {
-        setSubmitError("Login failed. Please try again.");
+        setSubmitError(isSignup ? "Could not create the account. Please try again." : "Login failed. Please try again.");
       }
       setIsSubmitting(false);
     }
@@ -95,8 +111,8 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
 
   return (
     <AuthFormLayout
-      title="Login"
-      subtitle="Welcome back! Sign in to continue"
+      title={isSignup ? "Create account" : "Login"}
+      subtitle={isSignup ? "Sign up with your email and a password" : "Welcome back! Sign in to continue"}
       footerText=""
       footerLinkText=""
       footerLinkHref=""
@@ -149,8 +165,8 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="Enter password"
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              placeholder={isSignup ? "At least 6 characters" : "Enter password"}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setSubmitError(""); }}
               className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 pr-10 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-primary/25"
@@ -176,6 +192,22 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           </div>
         </div>
 
+        {isSignup && (
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
+              Confirm password
+            </label>
+            <input
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Re-enter password"
+              value={confirm}
+              onChange={(e) => { setConfirm(e.target.value); setSubmitError(""); }}
+              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-primary/25"
+            />
+          </div>
+        )}
+
         {submitError && (
           <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {submitError}
@@ -187,9 +219,20 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           disabled={isSubmitting}
           className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-text-primary transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
-          {isSubmitting ? "Signing in..." : "Login with Email"}
+          {isSubmitting ? (isSignup ? "Creating account..." : "Signing in...") : (isSignup ? "Create account" : "Login with Email")}
         </button>
       </form>
+
+      <div className="mt-5 text-center text-sm text-text-primary/60">
+        {isSignup ? "Already have an account?" : "New here?"}{" "}
+        <button
+          type="button"
+          onClick={() => { setMode(isSignup ? "login" : "signup"); setSubmitError(""); setConfirm(""); }}
+          className="font-bold text-accent hover:underline cursor-pointer"
+        >
+          {isSignup ? "Login" : "Create account"}
+        </button>
+      </div>
 
       <p className="mt-4 text-center text-xs leading-relaxed text-text-primary/40">
         Your PUBG UID is linked later from your team data, not for logging in.

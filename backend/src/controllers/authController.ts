@@ -6,6 +6,7 @@ import {
   isUidAvailable,
   loginUser,
   registerUser,
+  registerEmailUser,
   deleteUserByUid,
   getAllUsers,
   findOrCreateUser,
@@ -27,6 +28,37 @@ import { signToken } from "../utils/jwt.js";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   res.status(404).json({ message: "Registration is disabled. Please link your UID to sign in." });
+});
+
+export const registerEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  const normalizedEmail = String(email ?? "").trim().toLowerCase();
+
+  if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    res.status(400).json({ message: "Enter a valid email address" });
+    return;
+  }
+
+  if (!password || String(password).length < 6) {
+    res.status(400).json({ message: "Password must be at least 6 characters" });
+    return;
+  }
+
+  try {
+    const user = await registerEmailUser({
+      email: normalizedEmail,
+      password: String(password),
+    });
+    const token = signToken({ uid: user.uid, role: "user" });
+    res.status(201).json({ ...user, token });
+  } catch (error: any) {
+    if (error?.message === "EMAIL_ALREADY_EXISTS") {
+      res.status(409).json({ message: "An account with this email already exists. Please log in." });
+      return;
+    }
+    console.error("Email registration failed:", error);
+    res.status(500).json({ message: "Could not create the account. Please try again." });
+  }
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {

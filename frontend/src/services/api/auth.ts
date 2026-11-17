@@ -14,6 +14,16 @@ export async function registerAccount(
   });
 }
 
+export async function registerEmailAccount(payload: {
+  email: string;
+  password: string;
+}): Promise<UserProfile> {
+  return apiClient<UserProfile>("/auth/register-email", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function loginAccount(
   payload: LoginPayload,
 ): Promise<UserProfile> {
