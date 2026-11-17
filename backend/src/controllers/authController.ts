@@ -30,10 +30,29 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const { uid, inGameName, password } = req.body;
+  const { email, uid, inGameName, password } = req.body;
+
+  // Email + password is the primary sign-in. UID stays supported for legacy accounts.
+  if (email !== undefined && String(email).trim() !== "") {
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    if (!password) {
+      res.status(400).json({ message: "Password is required" });
+      return;
+    }
+
+    const user = await loginUser({ email: normalizedEmail, password: String(password) });
+    if (!user) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+    const token = signToken({ uid: user.uid, role: "user" });
+    res.json({ ...user, token });
+    return;
+  }
 
   if (!uid?.trim()) {
-    res.status(400).json({ message: "UID is required" });
+    res.status(400).json({ message: "Email is required" });
     return;
   }
 

@@ -32,6 +32,7 @@ export interface RegisterPayload {
 }
 
 export interface LoginPayload {
-  uid: string;
+  email?: string;
+  uid?: string;
   password: string;
 }

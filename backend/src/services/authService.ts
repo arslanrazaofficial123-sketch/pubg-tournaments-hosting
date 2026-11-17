@@ -98,7 +98,11 @@ export async function registerUser(
 export async function loginUser(
   payload: LoginPayload,
 ): Promise<UserProfile | null> {
-  const doc = await UserModel.findOne({ uid: payload.uid.trim() });
+  const filter = payload.email
+    ? { email: payload.email.trim().toLowerCase() }
+    : { uid: (payload.uid || "").trim() };
+
+  const doc = await UserModel.findOne(filter);
   if (!doc || !doc.password) return null;
 
   const isValid = await bcrypt.compare(payload.password, doc.password);

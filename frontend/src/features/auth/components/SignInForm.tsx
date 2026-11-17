@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isLoggedIn as checkLoggedIn, setSession } from "@/lib/auth";
@@ -20,7 +20,7 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [uid, setUid] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -30,31 +30,45 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
     }
   }, [router, onSuccess]);
 
-  const handleGoogleSuccess = async (credential: string) => {
-    setIsSubmitting(true);
-    setSubmitError("");
+  const handleGoogleSuccess = useCallback(
+    async (credential: string) => {
+      setIsSubmitting(true);
+      setSubmitError("");
 
-    try {
-      const user = await googleSignIn(credential);
-      setSession(user);
-      onSuccess?.();
-      router.push("/dashboard");
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setSubmitError(error.message);
-      } else {
-        setSubmitError("Google sign-in failed. Please try again.");
+      try {
+        const user = await googleSignIn(credential);
+        setSession(user);
+        onSuccess?.();
+        router.replace("/dashboard");
+      } catch (error) {
+        if (error instanceof ApiError) {
+          setSubmitError(error.message);
+        } else {
+          setSubmitError("Google sign-in failed. Please try again.");
+        }
+        setIsSubmitting(false);
       }
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [onSuccess, router],
+  );
+
+  const handleGoogleError = useCallback((message: string) => {
+    setIsSubmitting(false);
+    setSubmitError(message);
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
-    if (!uid.trim()) {
-      setSubmitError("UID is required.");
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setSubmitError("Email is required.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setSubmitError("Enter a valid email address.");
       return;
     }
     if (!password) {
@@ -65,10 +79,10 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
     setIsSubmitting(true);
 
     try {
-      const user = await loginAccount({ uid: uid.trim(), password });
+      const user = await loginAccount({ email: normalizedEmail, password });
       setSession(user);
       onSuccess?.();
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       if (error instanceof ApiError) {
         setSubmitError(error.message);
@@ -97,7 +111,7 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           <GoogleSignInButton
             clientId={GOOGLE_CLIENT_ID}
             onSuccess={handleGoogleSuccess}
-            onError={(message) => setSubmitError(message)}
+            onError={handleGoogleError}
           />
         </div>
       )}
@@ -116,15 +130,15 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
       <form onSubmit={handleEmailLogin} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
-            UID
+            Email
           </label>
           <input
-            type="text"
-            inputMode="numeric"
-            placeholder="Enter your PUBG UID"
-            value={uid}
-            onChange={(e) => { setUid(e.target.value); setSubmitError(""); }}
-            className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent font-mono placeholder:text-text-primary/25"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setSubmitError(""); }}
+            className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-primary/25"
           />
         </div>
 
@@ -135,10 +149,11 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
               placeholder="Enter password"
               value={password}
               onChange={(e) => { setPassword(e.target.value); setSubmitError(""); }}
-              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 pr-10 text-sm text-text-primary focus:outline-none focus:border-accent font-mono placeholder:text-text-primary/25"
+              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 pr-10 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-primary/25"
             />
             <button
               type="button"
@@ -172,9 +187,13 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           disabled={isSubmitting}
           className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-text-primary transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
-          {isSubmitting ? "Signing in..." : "Login with UID"}
+          {isSubmitting ? "Signing in..." : "Login with Email"}
         </button>
       </form>
+
+      <p className="mt-4 text-center text-xs leading-relaxed text-text-primary/40">
+        Your PUBG UID is linked later from your team data, not for logging in.
+      </p>
 
       {!isModal && (
         <div className="mt-5 text-center">

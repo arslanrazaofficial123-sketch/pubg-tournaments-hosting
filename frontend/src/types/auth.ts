@@ -33,9 +33,8 @@ export interface SignUpFormData {
 }
 
 export interface SignInFormData {
-  uid: string;
-  password?: string;
-  inGameName?: string;
+  email: string;
+  password: string;
 }
 
 export interface RegisterPayload extends SignUpFormData {}
