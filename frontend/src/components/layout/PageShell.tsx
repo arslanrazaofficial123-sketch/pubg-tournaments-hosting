@@ -41,8 +41,10 @@ export function PageShell({ children, showHelpFab = true, heroVariant = "compact
 
   return (
     <div className="relative">
+      {/* The home hero is tall, so the menu goes above it; inner pages keep the banner-then-menu order. */}
+      {heroVariant === "home" && <SiteNavigation />}
       <HeroSection onOpenAuth={handleOpenAuth} variant={heroVariant} />
-      <SiteNavigation />
+      {heroVariant !== "home" && <SiteNavigation />}
       {children}
       <AuthModal
         isOpen={isAuthOpen}
