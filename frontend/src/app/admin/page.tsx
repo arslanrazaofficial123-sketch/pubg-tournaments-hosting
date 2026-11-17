@@ -1,5 +1,6 @@
 "use client";
 
+import { ShowcaseAdmin } from "@/features/showcase";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getTournaments, createTournament, deleteTournament, updateTournament, fetchAllRegistrations, updateRegistrationStatus, eliminateRegistration, updateRegistrationStats, updateRegistrationSlot, sendTournamentNotifications, exportRegistrations, type Registration } from "@/services/api/tournaments";
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { Trophy, Users, FileText, LayoutGrid, Calendar, BarChart3, Settings, MessageSquare, LayoutDashboard, Star, Wallet, Database, ShoppingBag, Trash2 } from "lucide-react";
 import { AdminShopOrdersPanel } from "@/features/shop/components/AdminShopOrdersPanel";
 
-type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews" | "wallet" | "shop-orders" | "deletion-requests";
+type ActiveTab = "overview" | "tournaments" | "users" | "registrations" | "groups" | "matches" | "settings" | "leaderboards" | "reviews" | "wallet" | "shop-orders" | "deletion-requests" | "showcase";
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 B";
@@ -1040,6 +1041,12 @@ export default function AdminDashboard() {
       partnerAccess: true,
     },
     {
+      id: "showcase",
+      label: "Showcase",
+      icon: <Star className="w-5 h-5 shrink-0" />,
+      partnerAccess: false,
+    },
+    {
       id: "reviews",
       label: "Reviews",
       icon: <MessageSquare className="w-5 h-5 shrink-0" />,
@@ -1659,6 +1666,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
+          ) : activeTab === "showcase" ? (
+            <ShowcaseAdmin />
           ) : activeTab === "tournaments" ? (
             <div className="space-y-8 max-w-7xl mx-auto animate-fade-in-up">
               {/* Stat Cards */}

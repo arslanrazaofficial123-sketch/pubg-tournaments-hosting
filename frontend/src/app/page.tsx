@@ -6,6 +6,7 @@ import {
   TournamentFilters,
   TournamentSections,
 } from "@/features/tournaments";
+import { ShowcaseSection } from "@/features/showcase";
 
 export default function Home() {
   const [activeSize, setActiveSize] = useState<string | null>(null);
@@ -17,6 +18,7 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <TournamentSections activeSize={activeSize} />
       </section>
+      <ShowcaseSection />
     </PageShell>
   );
 }

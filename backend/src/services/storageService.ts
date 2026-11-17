@@ -8,7 +8,7 @@ cloudinary.config({
 });
 
 export interface UploadImageParams {
-  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof" | "receipt" | "production-logo" | "production-photo";
+  kind: "avatar" | "team-logo" | "player-picture" | "wallet-proof" | "receipt" | "production-logo" | "production-photo" | "showcase";
   uid?: string;
   teamName?: string;
   dataUrl: string;
@@ -26,6 +26,7 @@ const FOLDER_MAP: Record<string, string> = {
   receipt: "epix/receipts",
   "production-logo": "epix/production-logos",
   "production-photo": "epix/production-photos",
+  showcase: "epix/showcase",
 };
 
 export async function uploadImageWithMeta(
