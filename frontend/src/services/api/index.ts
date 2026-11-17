@@ -1,4 +1,4 @@
-export { apiClient, ApiError } from "./client";
+export { apiClient, ApiError, warmUpApi } from "./client";
 export {
   checkUidAvailable,
   fetchUserByUid,

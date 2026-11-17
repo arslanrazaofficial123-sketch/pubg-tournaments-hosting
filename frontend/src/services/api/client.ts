@@ -10,6 +10,20 @@ const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+let apiWarmedUp = false;
+
+/**
+ * The backend runs as a serverless function, so the first request after idle can
+ * take several seconds while the function boots and Mongo connects. Pinging the
+ * health route ahead of time (on page load, or when the user heads for /login)
+ * makes the actual sign-in request land on a warm instance.
+ */
+export function warmUpApi() {
+  if (apiWarmedUp || typeof window === "undefined") return;
+  apiWarmedUp = true;
+  fetch(`${API_BASE_URL}/health`, { cache: "no-store" }).catch(() => {});
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,

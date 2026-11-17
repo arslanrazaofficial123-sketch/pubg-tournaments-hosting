@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { isLoggedIn as checkLoggedIn, getSessionUser } from "@/lib/auth";
 import { getTournaments, fetchAllRegistrations } from "@/services/api/tournaments";
+import { warmUpApi } from "@/services/api";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 
@@ -215,6 +216,8 @@ export function SiteNavigation() {
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href={isMounted && isLoggedIn ? "/dashboard" : "/login"}
+              onPointerEnter={warmUpApi}
+              onFocus={warmUpApi}
               className="bg-accent inline-flex h-10 items-center rounded-full px-4 text-xs font-bold uppercase tracking-wider sm:px-5 sm:text-sm"
             >
               {isMounted && isLoggedIn ? "Dashboard" : "Register"}
@@ -271,6 +274,7 @@ export function SiteNavigation() {
           <Link
             href={isMounted && isLoggedIn ? "/dashboard" : "/login"}
             onClick={() => setIsMenuOpen(false)}
+            onPointerEnter={warmUpApi}
             className="bg-accent flex h-11 w-full items-center justify-center rounded-full text-sm font-bold uppercase tracking-wider"
           >
             {isMounted && isLoggedIn ? "Dashboard" : "Register"}
