@@ -118,10 +118,15 @@ body {
 }
 
 .admin-shell {
+  position: relative;
   background:
-    radial-gradient(1200px 600px at 85% -10%, rgba(31, 174, 233, 0.08), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(31, 174, 233, 0.06), transparent 55%),
+    radial-gradient(900px 520px at 88% -8%, rgba(255, 122, 26, 0.16), transparent 62%),
+    radial-gradient(1000px 600px at -8% 108%, rgba(31, 174, 233, 0.16), transparent 58%),
+    radial-gradient(700px 400px at 50% 50%, rgba(120, 80, 255, 0.06), transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px) 0 0 / 44px 44px,
     var(--color-bg-primary);
+  background-attachment: fixed;
 }
 
 .admin-sidebar {
