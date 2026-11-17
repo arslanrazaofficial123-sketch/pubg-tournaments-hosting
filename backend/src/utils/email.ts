@@ -338,3 +338,121 @@ export async function sendTournamentNotificationEmail(
 
   return sendEmail(to, `🎮 New Tournament: ${tournament.title} — Register Now!`, html);
 }
+
+export interface MatchCredentialsData {
+  matchTitle: string;
+  map: string;
+  tournamentTitle: string;
+  roomId: string;
+  roomPassword: string;
+  matchTime: string;
+  matchDate: string;
+}
+
+export function formatWhatsAppMessage(teamName: string, data: MatchCredentialsData): string {
+  const dateFormatted = new Date(`${data.matchDate}T${data.matchTime || "20:00"}`).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Karachi",
+  });
+
+  return [
+    `🎮 *${teamName} — MATCH IS LIVE!*`,
+    ``,
+    `Dear ${teamName},`,
+    `Your match credentials for *${data.tournamentTitle} (${data.map})* are now live:`,
+    ``,
+    `🔹 *Room ID:* ${data.roomId}`,
+    `🔹 *Password:* ${data.roomPassword}`,
+    `🔹 *Time:* ${dateFormatted} PKT`,
+    ``,
+    `Join your assigned slot on time.`,
+    `Wrong slot joining or misbehavior will lead to kick/ban.`,
+    ``,
+    `Good Luck & Have Fun! 🏆`,
+  ].join("\n");
+}
+
+export async function sendMatchCredentialsEmail(
+  to: string,
+  teamName: string,
+  data: MatchCredentialsData,
+): Promise<boolean> {
+  const dateFormatted = new Date(`${data.matchDate}T${data.matchTime || "20:00"}`).toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Karachi",
+  });
+
+  const waMessage = formatWhatsAppMessage(teamName, data);
+  const waLink = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">🎮 MATCH IS LIVE!</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0;">${data.tournamentTitle}</p>
+      </div>
+      <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
+        <p style="font-size: 16px;">Dear <strong>${teamName}</strong>,</p>
+        <p>Your match credentials for <strong>${data.tournamentTitle} (${data.map})</strong> are now live:</p>
+        
+        <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin: 0 0 16px; color: #374151; font-size: 18px;">${data.matchTitle}</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 10px 0; color: #6b7280; font-size: 14px;">Room ID</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; font-size: 20px; color: #7c3aed; font-family: monospace;">${data.roomId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #6b7280; font-size: 14px;">Password</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 700; font-size: 20px; color: #7c3aed; font-family: monospace;">${data.roomPassword}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #6b7280; font-size: 14px;">Map</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 600;">${data.map}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; color: #6b7280; font-size: 14px;">Match Time</td>
+              <td style="padding: 10px 0; text-align: right; font-weight: 600; color: #dc2626;">${dateFormatted} PKT</td>
+            </tr>
+          </table>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px;">
+          Join your assigned slot on time.<br/>
+          Wrong slot joining or misbehavior will lead to kick/ban.
+        </p>
+
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${waLink}" target="_blank" style="display: inline-block; background: #25D366; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px;">📱 Forward to WhatsApp</a>
+        </div>
+
+        <p style="color: #6b7280; font-size: 14px; text-align: center;">
+          Good Luck &amp; Have Fun!
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          Epix Esports &bull; <a href="${env.clientUrl}" style="color: #7c3aed;">Visit Website</a>
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return sendEmail(to, `🎮 MATCH IS LIVE: ${data.tournamentTitle} (${data.map}) — Room ID: ${data.roomId}`, html);
+}

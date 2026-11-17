@@ -97,7 +97,10 @@ async function loadTeamData(): Promise<TeamData | null> {
         setSavedTeamLogo(savedTeam.teamLogo || "");
       }
 
-      const initialMembers = Array.from({ length: memberCount }, (_, i) => {
+      /* the squad plus any substitutes the team saved on the Team Data page */
+      const savedCount = savedTeam?.players?.filter((pl) => (pl?.uid || "").trim()).length || 0;
+      const rows = Math.max(memberCount, Math.min(savedCount, memberCount + 2));
+      const initialMembers = Array.from({ length: rows }, (_, i) => {
         const savedPlayer = savedTeam?.players?.[i];
         if (i === 0) {
           return {
@@ -224,7 +227,7 @@ async function loadTeamData(): Promise<TeamData | null> {
         {/* Members List - Read-only from player-photos */}
         <div className="space-y-3 pt-1">
           <h4 className="text-xs sm:text-sm font-bold text-text-primary/95 border-b border-white/5 pb-1.5">
-            Team Members ({members.length})
+            Team Members ({members.length}){members.length > memberCount ? ` — ${members.length - memberCount} substitute(s)` : ""}
           </h4>
           <span className="text-[10px] sm:text-xs text-text-primary/45 block">
             Player details loaded from Team Data page. Edit there to update.

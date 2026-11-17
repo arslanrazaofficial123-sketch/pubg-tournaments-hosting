@@ -3,6 +3,7 @@ import { connectDatabase } from "./config/database.js";
 import { env } from "./config/env.js";
 import { sendErrorAlert } from "./services/emailService.js";
 import { UserModel } from "./models/User.js";
+import { startMatchCredentialsScheduler } from "./services/matchCredentialsService.js";
 
 let lastAlertAt = 0;
 const ALERT_COOLDOWN_MS = 60_000;
@@ -59,6 +60,9 @@ async function bootstrap() {
   app.listen(env.port, () => {
     console.log(`API server running on http://localhost:${env.port}`);
   });
+
+  /* room ID + password go out by themselves the moment a match's reveal time passes */
+  startMatchCredentialsScheduler();
 }
 
 bootstrap().catch((error) => {

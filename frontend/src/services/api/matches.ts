@@ -12,6 +12,9 @@ export interface Match {
   roomId?: string;
   roomPassword?: string;
   revealAt?: string;
+  autoSend?: boolean;
+  credentialsSentAt?: string;
+  lastSendReport?: { at: string; by: string; total: number; sent: number; failed: number; noNumber: number } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +47,7 @@ export async function createMatch(payload: {
   roomId?: string;
   roomPassword?: string;
   revealAt?: string;
+  autoSend?: boolean;
 }): Promise<Match> {
   return apiClient<Match>("/matches", {
     method: "POST",
@@ -68,6 +72,7 @@ export async function updateMatch(
     roomId: string;
     roomPassword: string;
     revealAt: string;
+    autoSend: boolean;
   }>
 ): Promise<Match> {
   return apiClient<Match>(`/matches/${matchId}`, {
@@ -76,10 +81,27 @@ export async function updateMatch(
   });
 }
 
+export interface SendCredentialsResult {
+  success: boolean;
+  message: string;
+  code?: "too-early" | "already-sent" | "no-teams" | "no-credentials" | "not-found" | "no-tournament";
+  revealAt?: string;
+  sentAt?: string;
+  sent: number;
+  failed: number;
+  noNumber: number;
+  total: number;
+  waLinks: Array<{ teamName: string; phone: string; link: string }>;
+  results?: Array<{ teamName: string; phone: string; slotNumber?: number | null; status: "sent" | "link" | "no-number" }>;
+}
+
+/** force: send even before the reveal time. resend: send again after it already went out. */
 export async function sendMatchCredentials(
   matchId: string,
-): Promise<{ success: boolean; message: string; sent: number; failed: number; total: number; waLinks: Array<{ teamName: string; phone: string; link: string }> }> {
+  opts: { force?: boolean; resend?: boolean } = {},
+): Promise<SendCredentialsResult> {
   return apiClient(`/matches/${matchId}/send-credentials`, {
     method: "POST",
+    body: JSON.stringify({ force: !!opts.force, resend: !!opts.resend }),
   });
 }

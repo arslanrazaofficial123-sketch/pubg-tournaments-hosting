@@ -15,16 +15,8 @@ export function CarouselControls({
 }: CarouselControlsProps) {
   return (
     <div className="flex shrink-0 gap-2">
-      <CarouselButton
-        direction="prev"
-        onClick={onPrev}
-        disabled={!canScrollPrev}
-      />
-      <CarouselButton
-        direction="next"
-        onClick={onNext}
-        disabled={!canScrollNext}
-      />
+      <CarouselButton direction="prev" onClick={onPrev} disabled={!canScrollPrev} />
+      <CarouselButton direction="next" onClick={onNext} disabled={!canScrollNext} />
     </div>
   );
 }
@@ -45,10 +37,10 @@ function CarouselButton({
       disabled={disabled}
       aria-label={direction === "prev" ? "Previous slide" : "Next slide"}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-full border border-border transition-all",
+        "flex h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-secondary/60 text-text-primary backdrop-blur transition-all duration-300",
         disabled
           ? "cursor-not-allowed opacity-30"
-          : "hover:border-accent hover:bg-accent/10 hover:text-accent",
+          : "hover:-translate-y-0.5 hover:border-accent hover:bg-accent/15 hover:text-accent hover:shadow-lg hover:shadow-accent/20 active:scale-95",
       )}
     >
       <svg
@@ -58,7 +50,7 @@ function CarouselButton({
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
         className={direction === "next" ? "rotate-180" : ""}

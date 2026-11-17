@@ -5,6 +5,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import type { Tournament } from "@/types/tournament";
 import { CarouselControls, SectionHeader } from "@/components/ui";
 import { TOURNAMENT_CARD } from "@/lib/constants";
+import { Gamepad2 } from "lucide-react";
 import { TournamentCard } from "./TournamentCard";
 
 interface TournamentCarouselProps {
@@ -54,26 +55,16 @@ export function TournamentCarousel({
     return (
       <section id={sectionId} className="scroll-mt-24">
         <SectionHeader title={title} subtitle={subtitle} />
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 text-accent">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="28"
-              height="28"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-white/10 bg-bg-secondary/40 py-16 text-center">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(300px_160px_at_50%_-20%,rgba(59,130,246,.12),transparent_65%)]" />
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/25 bg-accent/10 text-accent shadow-lg shadow-accent/10">
+            <Gamepad2 size={28} />
           </div>
           <p className="text-lg font-bold text-text-primary/70">
             No tournaments in this category right now.
+          </p>
+          <p className="mt-1 max-w-xs text-xs text-text-primary/40">
+            New events open every week — check back soon.
           </p>
         </div>
       </section>
@@ -92,21 +83,25 @@ export function TournamentCarousel({
         />
       </div>
 
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4">
-          {tournaments.map((tournament) => (
-            <div
-              key={tournament.id}
-              className="shrink-0"
-              style={{ width: TOURNAMENT_CARD.width }}
-            >
-              <TournamentCard
-                tournament={tournament}
-                onClick={() => onSelectTournament(tournament)}
-              />
-            </div>
-          ))}
+      <div className="relative">
+        <div className="overflow-hidden rounded-xl" ref={emblaRef}>
+          <div className="flex gap-4 py-2">
+            {tournaments.map((tournament) => (
+              <div
+                key={tournament.id}
+                className="shrink-0"
+                style={{ width: TOURNAMENT_CARD.width }}
+              >
+                <TournamentCard
+                  tournament={tournament}
+                  onClick={() => onSelectTournament(tournament)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-linear-to-r from-bg-primary to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-bg-primary to-transparent" />
       </div>
     </section>
   );

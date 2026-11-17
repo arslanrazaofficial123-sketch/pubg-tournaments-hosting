@@ -53,7 +53,7 @@ const FAQS = [
   },
   {
     q: "How do I get my lobby room ID?",
-    a: "Lobby IDs and passwords are shared on WhatsApp 30 minutes before every match. Make sure the number on your account is correct.",
+    a: "Lobby IDs and passwords will be shared on your registered tournament dashboard 15 minutes before every match.",
   },
   {
     q: "Can I get a refund?",
@@ -316,7 +316,7 @@ export default function ContactPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}`}
+              href="https://chat.whatsapp.com/ER1ufgyVDWDARMacuKpuyg"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg bg-linear-to-r from-emerald-500 to-emerald-600 px-6 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:shadow-emerald-500/40"

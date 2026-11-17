@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Check, ChevronDown, LayoutGrid, Users } from "lucide-react";
 
 const STATUS_OPTIONS = ["Registration Open", "Ongoing", "Upcoming", "Ended"] as const;
 const TEAM_SIZES = ["1v1", "2v2", "4v4"] as const;
@@ -23,30 +24,21 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
           <button
             type="button"
             onClick={() => setIsDropdownOpen((open) => !open)}
-            className="flex h-11 items-center gap-2 rounded-md border border-white/10 bg-bg-secondary/60 px-4 text-sm font-medium text-text-primary transition-colors hover:border-accent/30 active:bg-white/5 cursor-pointer"
+            className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-bg-secondary/60 px-4 text-sm font-semibold text-text-primary shadow-sm backdrop-blur transition-all hover:border-accent/40 hover:shadow-lg hover:shadow-accent/10 active:scale-[0.98]"
           >
+            <LayoutGrid size={15} className="text-accent" />
             {status}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            <ChevronDown
+              size={14}
               className={cn(
-                "transition-transform",
+                "text-accent transition-transform duration-200",
                 isDropdownOpen && "rotate-180",
               )}
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
+            />
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] overflow-hidden rounded-md border border-white/10 bg-bg-secondary shadow-xl">
+            <div className="absolute left-0 top-full z-50 mt-2 min-w-[200px] overflow-hidden rounded-xl border border-white/10 bg-bg-secondary p-1.5 shadow-2xl shadow-black/40 animate-fade-in-up">
               {STATUS_OPTIONS.map((option) => (
                 <button
                   key={option}
@@ -61,13 +53,14 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
                       ?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                   className={cn(
-                    "block w-full px-4 py-3 text-left text-sm transition-colors hover:bg-bg-primary active:bg-white/5 cursor-pointer",
+                    "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-bg-primary active:bg-white/5",
                     status === option
-                      ? "text-accent font-semibold"
+                      ? "bg-accent/10 font-semibold text-accent"
                       : "text-text-primary/70",
                   )}
                 >
                   {option}
+                  {status === option && <Check size={15} className="text-accent" />}
                 </button>
               ))}
             </div>
@@ -75,17 +68,21 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
         </div>
 
         {/* 1v1, 2v2, 4v4 Buttons (Right) */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-bg-secondary/60 p-1.5 backdrop-blur">
+          <span className="hidden items-center gap-1.5 pl-2 pr-1 text-[11px] font-bold uppercase tracking-wider text-text-primary/40 sm:flex">
+            <Users size={13} className="text-accent/70" />
+            Format
+          </span>
           {TEAM_SIZES.map((size) => (
             <button
               key={size}
               type="button"
               onClick={() => onSizeChange(activeSize === size ? null : size)}
               className={cn(
-                "rounded-md border h-11 px-4 text-sm font-medium transition-colors cursor-pointer",
+                "rounded-md px-3.5 py-1.5 text-sm font-semibold transition-all duration-200 cursor-pointer",
                 activeSize === size
-                  ? "border-accent bg-accent/15 text-accent"
-                  : "border-white/10 bg-bg-secondary/60 text-text-primary/70 hover:border-accent/30 hover:text-text-primary active:bg-white/5",
+                  ? "bg-linear-to-r from-accent to-cyan-500 text-bg-primary shadow-md shadow-accent/30"
+                  : "text-text-primary/70 hover:bg-white/5 hover:text-text-primary active:scale-95",
               )}
             >
               {size}

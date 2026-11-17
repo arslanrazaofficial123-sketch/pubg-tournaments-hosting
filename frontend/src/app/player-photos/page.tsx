@@ -221,8 +221,24 @@ export default function TeamDataPage() {
     showAlert("Team logo removed", "info");
   };
 
-  const maxPlayers = teamData.format === "solo" ? 1 : teamData.format === "duo" ? 2 : 4;
+  /* the squad that plays, plus substitutes a team may register beyond it */
+  const corePlayers = teamData.format === "solo" ? 1 : teamData.format === "duo" ? 2 : 4;
+  const maxPlayers = corePlayers + 2;
   const currentPlayers = teamData.players.slice(0, maxPlayers);
+
+  const handleAddPlayer = () => {
+    if (teamData.players.length >= maxPlayers) {
+      showAlert(`You can register up to ${maxPlayers} players (${corePlayers} + 2 substitutes)`, "info");
+      return;
+    }
+    saveTeamData({ ...teamData, players: [...teamData.players, { uid: "", inGameName: "", picture: "" }] });
+  };
+
+  const handleRemovePlayer = (index: number) => {
+    if (index < corePlayers) return;
+    const players = teamData.players.filter((_, i) => i !== index);
+    saveTeamData({ ...teamData, players });
+  };
 
   const formatLabel = {
     solo: "Solo (1 Player)",
@@ -343,7 +359,20 @@ export default function TeamDataPage() {
                       You
                     </span>
                   )}
+                  {i >= corePlayers && (
+                    <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-500">
+                      Substitute
+                    </span>
+                  )}
                 </span>
+                {i >= corePlayers && (
+                  <button
+                    onClick={() => handleRemovePlayer(i)}
+                    className="ml-auto rounded-md px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/10"
+                  >
+                    Remove
+                  </button>
+                )}
               </div>
 
               <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
@@ -400,6 +429,14 @@ export default function TeamDataPage() {
             </div>
           ))}
         </div>
+        {currentPlayers.length < maxPlayers && (
+          <button
+            onClick={handleAddPlayer}
+            className="mt-4 w-full rounded-lg border-2 border-dashed border-border bg-bg-primary/30 px-4 py-3 text-sm font-medium text-text-primary/70 transition-colors hover:border-accent/50 hover:text-accent"
+          >
+            + Add substitute ({currentPlayers.length}/{maxPlayers})
+          </button>
+        )}
       </div>
 
       {/* Save Button */}

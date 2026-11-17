@@ -92,8 +92,11 @@ async function sendViaBlueticks(to: string, message: string): Promise<boolean> {
 export interface SendResult {
   sent: number;
   failed: number;
+  noNumber: number;
   total: number;
   waLinks: Array<{ teamName: string; phone: string; link: string }>;
+  /* one line per team, so the admin can see exactly who got it and who did not */
+  results: Array<{ teamName: string; phone: string; slotNumber?: number | null; status: "sent" | "link" | "no-number" }>;
 }
 
 export async function sendMatchCredentialsWhatsApp(
@@ -101,11 +104,14 @@ export async function sendMatchCredentialsWhatsApp(
 ): Promise<SendResult> {
   let sent = 0;
   let failed = 0;
+  let noNumber = 0;
   const waLinks: Array<{ teamName: string; phone: string; link: string }> = [];
+  const results: SendResult["results"] = [];
 
   for (const reg of registrations) {
     if (!reg.whatsappNumber) {
-      failed++;
+      noNumber++;
+      results.push({ teamName: reg.teamName, phone: "", slotNumber: reg.slotNumber ?? null, status: "no-number" });
       continue;
     }
 
@@ -117,6 +123,8 @@ export async function sendMatchCredentialsWhatsApp(
       roomPassword: reg.roomPassword,
       matchTime: reg.matchTime,
       matchDate: reg.matchDate,
+      slotNumber: reg.slotNumber ?? null,
+      group: reg.group,
     });
 
     let ok = false;
@@ -134,7 +142,13 @@ export async function sendMatchCredentialsWhatsApp(
 
     if (ok) sent++;
     else failed++;
+    results.push({
+      teamName: reg.teamName,
+      phone: reg.whatsappNumber,
+      slotNumber: reg.slotNumber ?? null,
+      status: ok ? "sent" : "link",
+    });
   }
 
-  return { sent, failed, total: registrations.length, waLinks };
+  return { sent, failed, noNumber, total: registrations.length, waLinks, results };
 }

@@ -61,7 +61,6 @@ export function HeroSection({ onOpenAuth }: HeroSectionProps) {
                 src="/images/logo.png"
                 alt="PUBG Mobile Logo"
                 fill
-                priority
                 sizes="(max-width: 640px) 64px, 150px"
                 className="object-contain object-left-bottom drop-shadow-[0_0_18px_rgba(31,174,233,0.35)]"
               />

@@ -705,25 +705,43 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSendCredentials = async (matchId: string, matchTitle: string) => {
-    showConfirm(`Send Room ID & Password via WhatsApp to all registered teams for "${matchTitle}"?`, async () => {
+  const handleSendCredentials = async (matchId: string, matchTitle: string, opts: { force?: boolean; resend?: boolean } = {}) => {
+    const run = async () => {
       setSendingCredentialsMatchId(matchId);
       try {
-        const res = await sendMatchCredentials(matchId);
+        const res = await sendMatchCredentials(matchId, opts);
         const waLinks = res.waLinks || [];
+        const noNum = (res.results || []).filter((r) => r.status === "no-number");
+        let extra = "";
+        if (noNum.length > 0) extra = `\n\nNo WhatsApp number: ${noNum.map((r) => r.teamName).join(", ")}`;
         if (waLinks.length > 0) {
           setPendingWaLinks((prev) => ({ ...prev, [matchId]: waLinks }));
-          showAlert(`${res.message}\n\nClick "📱 Open All WhatsApp" to open all chat tabs at once.`, "success");
+          showAlert(`${res.message}${extra}\n\nClick "📱 Open All WhatsApp" to open all chat tabs at once.`, "success");
         } else {
-          showAlert(res.message || `WhatsApp credentials sent to ${res.sent} teams.`, "success");
+          showAlert(`${res.message || `WhatsApp credentials sent to ${res.sent} teams.`}${extra}`, "success");
         }
+        try {
+          setMatches(await fetchMatches(activeMatchTournamentId || undefined, activeMatchDay));
+        } catch { /* the list refreshes on its own next time */ }
       } catch (err: any) {
-        console.error("Failed to send credentials:", err);
-        showAlert(err.message || "Failed to send credentials.", "error");
+        /* the server refuses before reveal time, or when it has already gone out - offer the override */
+        const body = err?.body || err?.data || {};
+        const code = body.code as string | undefined;
+        if (code === "too-early") {
+          showConfirm(`${body.message}\n\nSend it now anyway?`, () => handleSendCredentials(matchId, matchTitle, { force: true }));
+        } else if (code === "already-sent") {
+          showConfirm(`${body.message}\n\nSend them again?`, () => handleSendCredentials(matchId, matchTitle, { resend: true }));
+        } else {
+          console.error("Failed to send credentials:", err);
+          showAlert(body.message || err.message || "Failed to send credentials.", "error");
+        }
       } finally {
         setSendingCredentialsMatchId(null);
       }
-    });
+    };
+
+    if (opts.force || opts.resend) { await run(); return; }
+    showConfirm(`Send Room ID & Password via WhatsApp to all registered teams for "${matchTitle}"?`, run);
   };
 
   const handleOpenAllWhatsApp = (matchId: string) => {
@@ -2611,6 +2629,7 @@ export default function AdminDashboard() {
                                                 {String(hrs).padStart(2, "0")}:{String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
                                               </div>
                                               <div className="text-[10px] text-amber-400/60 mt-0.5">Reveals at {new Date(m.revealAt).toLocaleString("en-PK", { hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                                              <div className="text-[10px] text-amber-400/60">{m.autoSend === false ? "Auto-send off — send it yourself" : "Sends to every team by itself at this time"}</div>
                                             </div>
                                           );
                                         }
@@ -2628,6 +2647,19 @@ export default function AdminDashboard() {
                                         </>
                                       );
                                     })()}
+                                    {m.lastSendReport && (
+                                      <div className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-2.5">
+                                        <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                                          ID Pass sent {m.lastSendReport.by === "auto" ? "automatically" : "by admin"}
+                                        </div>
+                                        <div className="text-[10px] text-emerald-300/80 mt-0.5">
+                                          {new Date(m.lastSendReport.at).toLocaleString("en-PK", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: true })}
+                                          {" — "}{m.lastSendReport.sent}/{m.lastSendReport.total} delivered
+                                          {m.lastSendReport.failed > 0 ? `, ${m.lastSendReport.failed} by link` : ""}
+                                          {m.lastSendReport.noNumber > 0 ? `, ${m.lastSendReport.noNumber} without a number` : ""}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-border/40 flex justify-end gap-2">
@@ -2644,7 +2676,7 @@ export default function AdminDashboard() {
                                             Sending...
                                           </span>
                                         ) : (
-                                          "📱 Send ID Pass"
+                                          m.credentialsSentAt ? "📱 Resend ID Pass" : "📱 Send ID Pass"
                                         )}
                                       </button>
                                       {pendingWaLinks[m.id] && pendingWaLinks[m.id].length > 0 && (

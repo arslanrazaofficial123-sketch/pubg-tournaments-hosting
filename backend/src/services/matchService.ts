@@ -12,6 +12,7 @@ export async function createMatch(payload: {
   roomId?: string;
   roomPassword?: string;
   revealAt?: string;
+  autoSend?: boolean;
 }) {
   const matchId = `match-${uuidv4().substring(0, 8)}`;
   const match = new MatchModel({
@@ -46,11 +47,20 @@ export async function updateMatchById(
     roomId?: string;
     roomPassword?: string;
     revealAt?: string;
+    autoSend?: boolean;
   }>,
 ) {
+  /* a new room, password or reveal time means the credentials have to go out again */
+  const current = await MatchModel.findOne({ id: matchId }).lean();
+  const changed =
+    current &&
+    (("roomId" in payload && payload.roomId !== current.roomId) ||
+      ("roomPassword" in payload && payload.roomPassword !== current.roomPassword) ||
+      ("revealAt" in payload && (payload.revealAt || "") !== (current.revealAt || "")));
+
   const match = await MatchModel.findOneAndUpdate(
     { id: matchId },
-    payload,
+    changed ? { ...payload, credentialsSentAt: "" } : payload,
     { new: true }
   );
   return match ? match.toObject() : null;

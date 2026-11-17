@@ -110,3 +110,134 @@ body {
 .transition-smooth {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ===== Admin Panel Design Enhancements ===== */
+@keyframes adminGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.admin-shell {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(31, 174, 233, 0.08), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(31, 174, 233, 0.06), transparent 55%),
+    var(--color-bg-primary);
+}
+
+.admin-sidebar {
+  background:
+    linear-gradient(180deg, rgba(31, 174, 233, 0.06), transparent 30%),
+    var(--color-bg-secondary);
+}
+
+.admin-nav-item {
+  position: relative;
+  border-left: 3px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-nav-item:hover {
+  background: rgba(31, 174, 233, 0.08);
+  border-left-color: rgba(31, 174, 233, 0.4);
+}
+
+.admin-nav-item-active {
+  background: linear-gradient(90deg, rgba(31, 174, 233, 0.18), rgba(31, 174, 233, 0.04)) !important;
+  border-left-color: var(--color-accent) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: inset 0 0 20px rgba(31, 174, 233, 0.08);
+}
+
+.admin-card {
+  background: linear-gradient(160deg, rgba(31, 174, 233, 0.05), rgba(4, 24, 45, 0.6));
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-card:hover {
+  border-color: rgba(31, 174, 233, 0.45);
+  box-shadow: 0 8px 40px rgba(31, 174, 233, 0.1);
+  transform: translateY(-2px);
+}
+
+.admin-kpi {
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-kpi::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  opacity: 0.6;
+}
+
+.admin-kpi-icon {
+  background: linear-gradient(135deg, rgba(31, 174, 233, 0.2), rgba(31, 174, 233, 0.05));
+  border: 1px solid rgba(31, 174, 233, 0.25);
+}
+
+.admin-table thead th {
+  background: linear-gradient(180deg, rgba(31, 174, 233, 0.08), rgba(31, 174, 233, 0.02));
+  letter-spacing: 0.08em;
+}
+
+.admin-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(31, 174, 233, 0.05);
+}
+
+.admin-btn-primary {
+  background: linear-gradient(135deg, var(--color-accent), #0e7fb8);
+  box-shadow: 0 4px 20px rgba(31, 174, 233, 0.3);
+  transition: all 0.2s ease;
+}
+
+.admin-btn-primary:hover {
+  box-shadow: 0 6px 30px rgba(31, 174, 233, 0.45);
+  transform: translateY(-1px);
+}
+
+.admin-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  animation: adminGlow 2.4s ease-in-out infinite;
+}
+
+.admin-section-title {
+  background: linear-gradient(90deg, var(--color-text-primary), rgba(31, 174, 233, 0.9));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.admin-tab-underline {
+  position: relative;
+}
+
+.admin-tab-underline::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+}
+
+.admin-empty {
+  border: 1px dashed rgba(31, 174, 233, 0.25);
+  background: radial-gradient(circle at 50% 30%, rgba(31, 174, 233, 0.06), transparent 70%);
+}

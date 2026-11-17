@@ -6,9 +6,7 @@ import {
   deleteMatchById,
   updateMatchById,
 } from "../services/matchService.js";
-import { sendMatchCredentialsWhatsApp } from "../utils/whatsapp.js";
-import { TournamentModel } from "../models/Tournament.js";
-import { RegistrationModel } from "../models/Registration.js";
+import { deliverMatchCredentials } from "../services/matchCredentialsService.js";
 
 export const getMatchesList = asyncHandler(async (req: Request, res: Response) => {
   const tournamentId = req.query.tournamentId as string;
@@ -65,61 +63,20 @@ export const updateExistingMatch = asyncHandler(async (req: Request, res: Respon
 
 export const sendMatchCredentials = asyncHandler(async (req: Request, res: Response) => {
   const id = req.params.id as string;
-  const { getMatches: getMatchesFn } = await import("../services/matchService.js");
-  const matches = await getMatchesFn(undefined, undefined);
-  const match = matches.find((m) => m.id === id);
+  const force = req.body?.force === true || req.query.force === "1";
+  const resend = req.body?.resend === true || req.query.resend === "1";
 
-  if (!match) {
-    res.status(404).json({ message: "Match not found" });
+  const out = await deliverMatchCredentials(id, { force, resend, by: "admin" });
+
+  if (!out.ok) {
+    const status =
+      out.code === "not-found" || out.code === "no-tournament" ? 404
+      : out.code === "too-early" || out.code === "already-sent" ? 409
+      : out.code === "no-teams" ? 200
+      : 400;
+    res.status(status).json({ success: false, ...out });
     return;
   }
 
-  if (!match.roomId || !match.roomPassword) {
-    res.status(400).json({ message: "Room ID and Password must be set before sending credentials." });
-    return;
-  }
-
-  const tournament = await TournamentModel.findOne({ id: match.tournamentId }).lean();
-  if (!tournament) {
-    res.status(404).json({ message: "Tournament not found." });
-    return;
-  }
-
-  const query: Record<string, any> = {
-    tournamentId: match.tournamentId,
-    status: "approved",
-  };
-
-  if (match.groups && match.groups.length > 0) {
-    query.group = { $in: match.groups };
-  }
-
-  const registrations = await RegistrationModel.find(query).lean();
-
-  if (registrations.length === 0) {
-    res.json({ success: true, message: "No approved registrations found for this match's groups.", sent: 0, failed: 0, total: 0 });
-    return;
-  }
-
-  const payloads = registrations.map((reg) => ({
-    teamName: reg.teamName || reg.members?.[0]?.inGameName || "Solo Player",
-    whatsappNumber: reg.whatsapp,
-    tournamentTitle: tournament.title,
-    matchTitle: match.title,
-    map: match.map,
-    roomId: match.roomId,
-    roomPassword: match.roomPassword,
-    matchTime: match.time,
-    matchDate: match.date,
-    slotNumber: reg.slotNumber ?? null,
-    group: reg.group,
-  }));
-
-  const result = await sendMatchCredentialsWhatsApp(payloads);
-
-  res.json({
-    success: true,
-    message: `WhatsApp credentials sent. ${result.sent} delivered, ${result.failed} failed.`,
-    ...result,
-  });
+  res.json({ success: true, ...out, ...out.result });
 });

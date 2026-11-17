@@ -322,18 +322,7 @@ export default function DashboardPage() {
   };
 
   const handleDeleteAccount = () => {
-    if (!user) return;
-    showConfirm("Are you sure you want to permanently delete your account?", async () => {
-      try {
-        await deleteAccount(user.uid);
-        showAlert("Account deleted successfully.", "success");
-        logout();
-        router.push("/");
-      } catch (error) {
-        console.error("Failed to delete account:", error);
-        showAlert("Failed to delete account. Please try again.", "error");
-      }
-    });
+    router.push("/data-deletion");
   };
 
   if (isAuthorized === null) {
@@ -454,7 +443,7 @@ export default function DashboardPage() {
                 onClick={handleDeleteAccount}
                 className="py-2.5 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60"
               >
-                Delete Account
+                Request Deletion
               </Button>
             </div>
           </div>

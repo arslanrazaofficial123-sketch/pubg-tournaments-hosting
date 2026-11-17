@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 const NAV_ITEMS = [
   { label: "Tournaments", href: "/" },
   { label: "Shop", href: "/shop" },
+  { label: "Services", href: "/services" },
   { label: "Reviews", href: "/reviews" },
   { label: "About Us", href: "/about" },
   { label: "Contact Us", href: "/contact" },
