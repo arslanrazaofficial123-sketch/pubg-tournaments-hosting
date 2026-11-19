@@ -15,6 +15,18 @@ const BG = [
   "from-[#17325c]",
 ] as const;
 
+/** The schedule stores team sizes as solo/duo/squad; the filters say 1v1/2v2/4v4. */
+const FORMAT_LABEL: Record<string, string> = {
+  solo: "1v1",
+  duo: "2v2",
+  squad: "4v4",
+};
+
+function formatLabel(format: string) {
+  const key = format.trim().toLowerCase();
+  return FORMAT_LABEL[key] ?? format;
+}
+
 /** Poster-style tournament card. Same data and click behaviour as before. */
 export function TournamentCard({ tournament, onClick, index = 1 }: TournamentCardProps) {
   const slotPct = Math.min(
@@ -58,7 +70,7 @@ export function TournamentCard({ tournament, onClick, index = 1 }: TournamentCar
           {tournament.title}
         </h3>
         <p className="mt-2 text-sm capitalize text-[#a4b3d1]">
-          {tournament.format} · {tournament.registeredTeams}/{tournament.maxTeams} teams
+          {formatLabel(tournament.format)} · {tournament.registeredTeams}/{tournament.maxTeams} teams
         </p>
 
         <div className="mt-4 flex items-center gap-2">

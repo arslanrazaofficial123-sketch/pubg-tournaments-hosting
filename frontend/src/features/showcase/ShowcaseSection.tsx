@@ -17,11 +17,16 @@ function ytId(u: string): string | null {
 
 export function ShowcaseSection() {
   const [items, setItems] = useState<ShowcaseItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [video, setVideo] = useState<string | null>(null);
 
-  useEffect(() => { fetchShowcase().then(setItems); }, []);
-  if (items.length === 0) return null;
+  useEffect(() => {
+    fetchShowcase().then((list) => {
+      setItems(list);
+      setLoaded(true);
+    });
+  }, []);
 
   const [latest, ...older] = items;
 
@@ -39,6 +44,26 @@ export function ShowcaseSection() {
       <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>▶ Watch Grand Final</a>
     );
   };
+
+  if (items.length === 0) {
+    // Keep the #hall anchor alive (the rail and the hero both link to it).
+    if (!loaded) return null;
+    return (
+      <section id="hall" className="mx-auto max-w-[1180px] scroll-mt-16 px-5 py-14 sm:px-10">
+        <span className="inline-flex items-center rounded-full border border-[#2a3b6e] bg-[#4d7cff]/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#a9c0ff]">Hall of fame</span>
+        <h2 className="epx-hd mb-9 mt-4 text-[clamp(28px,3vw,40px)] font-bold leading-[1.05] text-[#e8eefc]">Past tournaments &amp; winners</h2>
+        <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-[#223158] bg-[#0d1426]/60 px-6 py-14 text-center">
+          <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[#f2b84b]/30 bg-[#f2b84b]/10 text-[#f2b84b]">
+            <Trophy aria-hidden="true" />
+          </span>
+          <p className="epx-hd text-lg font-bold text-[#e8eefc]/80">Champions archive</p>
+          <p className="mt-1 max-w-sm text-sm text-[#8da0c4]">
+            Champion posters, final standings and the broadcast are published after each tournament.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="hall" className="mx-auto max-w-[1180px] scroll-mt-16 px-5 py-14 sm:px-10">

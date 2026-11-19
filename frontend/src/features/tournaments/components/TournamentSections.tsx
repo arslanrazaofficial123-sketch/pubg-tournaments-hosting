@@ -14,6 +14,7 @@ export function TournamentSections({ activeSize }: TournamentSectionsProps) {
   const [selectedTournament, setSelectedTournament] =
     useState<Tournament | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [tournaments, setTournaments] = useState<{
     registration_open: Tournament[];
     upcoming: Tournament[];
@@ -30,6 +31,7 @@ export function TournamentSections({ activeSize }: TournamentSectionsProps) {
         getTournamentsByStatus("ended"),
       ]);
       setTournaments({ registration_open, upcoming, ongoing, ended });
+      setLoaded(true);
     }
 
     loadTournaments();
@@ -83,6 +85,8 @@ export function TournamentSections({ activeSize }: TournamentSectionsProps) {
     },
   ];
 
+  const visibleSections = sections.filter((section) => section.data.length > 0);
+
   const handleSuccessRegistration = async () => {
     const [registration_open, upcoming, ongoing, ended] = await Promise.all([
       getTournamentsByStatus("registration_open"),
@@ -95,18 +99,34 @@ export function TournamentSections({ activeSize }: TournamentSectionsProps) {
 
   return (
     <>
-      <div className="space-y-16">
-        {sections.map((section) => (
-          <TournamentCarousel
-            key={section.id}
-            sectionId={section.id}
-            title={section.title}
-            subtitle={section.subtitle}
-            tournaments={section.data}
-            onSelectTournament={handleSelectTournament}
-          />
-        ))}
-      </div>
+      {!loaded ? null : visibleSections.length > 0 ? (
+        <div className="space-y-16">
+          {visibleSections.map((section) => (
+            <TournamentCarousel
+              key={section.id}
+              sectionId={section.id}
+              title={section.title}
+              subtitle={section.subtitle}
+              tournaments={section.data}
+              onSelectTournament={handleSelectTournament}
+            />
+          ))}
+        </div>
+      ) : (
+        /* Nothing to list (empty database or a filter with no matches): one
+           panel instead of four stacked empty boxes. */
+        <TournamentCarousel
+          sectionId="registration-open"
+          title="Tournaments"
+          subtitle={
+            activeSize
+              ? `No ${activeSize} events in the schedule right now`
+              : "New events open every week"
+          }
+          tournaments={[]}
+          onSelectTournament={handleSelectTournament}
+        />
+      )}
 
       <TournamentModal
         tournament={selectedTournament}

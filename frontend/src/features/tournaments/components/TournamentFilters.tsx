@@ -5,6 +5,12 @@ import { cn } from "@/lib/utils";
 import { Check, ChevronDown, LayoutGrid, Users } from "lucide-react";
 
 const STATUS_OPTIONS = ["Registration Open", "Ongoing", "Upcoming", "Ended"] as const;
+const STATUS_ANCHORS: Record<(typeof STATUS_OPTIONS)[number], string> = {
+  "Registration Open": "registration-open",
+  Ongoing: "ongoing",
+  Upcoming: "upcoming",
+  Ended: "ended",
+};
 const TEAM_SIZES = ["1v1", "2v2", "4v4"] as const;
 
 interface TournamentFiltersProps {
@@ -46,10 +52,8 @@ export function TournamentFilters({ activeSize, onSizeChange }: TournamentFilter
                   onClick={() => {
                     setStatus(option);
                     setIsDropdownOpen(false);
-                    // Standardize string replacing to match underscores (e.g. registration_open)
-                    const elementId = option.toLowerCase().replace(/\s+/g, "_");
                     document
-                      .getElementById(elementId)
+                      .getElementById(STATUS_ANCHORS[option])
                       ?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
                   className={cn(
