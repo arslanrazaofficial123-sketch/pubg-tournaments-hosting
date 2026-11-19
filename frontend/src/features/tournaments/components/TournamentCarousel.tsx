@@ -86,7 +86,7 @@ export function TournamentCarousel({
       <div className="relative">
         <div className="overflow-hidden rounded-xl" ref={emblaRef}>
           <div className="flex gap-4 py-2">
-            {tournaments.map((tournament) => (
+            {tournaments.map((tournament, i) => (
               <div
                 key={tournament.id}
                 className="shrink-0"
@@ -95,6 +95,7 @@ export function TournamentCarousel({
                 <TournamentCard
                   tournament={tournament}
                   onClick={() => onSelectTournament(tournament)}
+                  index={i + 1}
                 />
               </div>
             ))}

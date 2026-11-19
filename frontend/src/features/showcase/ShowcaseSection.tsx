@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Trophy } from "lucide-react";
 import { fetchShowcase, type ShowcaseItem } from "@/services/api/showcase";
 
 function normUrl(u: string): string {
@@ -22,46 +23,105 @@ export function ShowcaseSection() {
   useEffect(() => { fetchShowcase().then(setItems); }, []);
   if (items.length === 0) return null;
 
+  const [latest, ...older] = items;
+
+  const watchButton = (it: ShowcaseItem, tone: "dark" | "light") => {
+    if (!it.youtubeUrl) return null;
+    const url = normUrl(it.youtubeUrl);
+    const id = ytId(url);
+    const cls =
+      tone === "dark"
+        ? "epx-hd inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full px-5 text-sm font-semibold text-[#1a1204] shadow-[inset_0_0_0_1.5px_#1a1204]"
+        : "epx-hd inline-flex min-h-9 cursor-pointer items-center justify-center rounded-full px-4 text-xs font-semibold text-[#e8eefc] shadow-[inset_0_0_0_1.5px_#2e4180] hover:text-[#f2b84b]";
+    return id ? (
+      <button type="button" className={cls} onClick={() => setVideo(id)}>▶ Watch Grand Final</button>
+    ) : (
+      <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>▶ Watch Grand Final</a>
+    );
+  };
+
   return (
-    <section id="hall" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-10 sm:px-6 lg:px-8">
-      <span className="inline-flex items-center rounded-full border border-[#2a3b6e] bg-[#4d7cff]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a9c0ff]">Hall of fame</span>
-      <h2 className="epx-hd mb-8 mt-3 text-2xl font-bold text-[#e8eefc] sm:text-3xl">Past Tournaments &amp; Winners</h2>
-      <div className="grid gap-6 lg:grid-cols-2">
-        {items.map((it) => (
-          <article key={it.id} className="overflow-hidden rounded-[24px] border border-[#223158] bg-[#0d1426] transition-all duration-300 hover:border-[#f2b84b]/60">
-            <div className="grid grid-cols-2">
-              {[{ u: it.championUrl, l: "Winner" }, { u: it.rankingsUrl, l: "Final rankings" }].map((p) => (
-                <button key={p.l} type="button" disabled={!p.u} onClick={() => p.u && setOpen(p.u)}
-                  className="group relative aspect-[4/5] cursor-pointer overflow-hidden bg-black/50 disabled:cursor-default">
-                  {p.u && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.u} alt={`${it.tournamentName} ${p.l}`} loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  )}
-                  {p.u && <span className="absolute bottom-2 left-2 rounded bg-black/70 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">{p.l}</span>}
+    <section id="hall" className="mx-auto max-w-[1180px] scroll-mt-16 px-5 py-14 sm:px-10">
+      <span className="inline-flex items-center rounded-full border border-[#2a3b6e] bg-[#4d7cff]/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#a9c0ff]">Hall of fame</span>
+      <h2 className="epx-hd mb-9 mt-4 text-[clamp(28px,3vw,40px)] font-bold leading-[1.05] text-[#e8eefc]">Past tournaments &amp; winners</h2>
+
+      <div className="flex flex-wrap items-stretch gap-6">
+        {/* Latest champion poster */}
+        <div className="relative flex min-h-[460px] min-w-0 flex-[1_1_380px] flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br from-[#ffe29a] via-[#f2b84b] to-[#b9741a] p-8 text-[#1a1204]">
+          <Trophy aria-hidden="true" strokeWidth={1} className="absolute -right-5 -top-2 h-44 w-44 text-[#1a1204]/15" />
+          <span className="relative self-start rounded-full bg-[#1a1204] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#f2b84b]">Latest champions</span>
+
+          {latest.championUrl && (
+            <button
+              type="button"
+              onClick={() => setOpen(latest.championUrl)}
+              aria-label={`${latest.tournamentName} winner picture`}
+              className="relative my-5 aspect-[16/10] w-full max-w-[340px] cursor-pointer self-start overflow-hidden rounded-2xl border-2 border-[#1a1204]/25"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={latest.championUrl} alt={`${latest.tournamentName} winner`} loading="lazy" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+            </button>
+          )}
+
+          <div className="relative">
+            <div className="text-sm font-semibold uppercase tracking-[0.08em] opacity-75">{latest.tournamentName}</div>
+            <div className="epx-hd mt-2 text-[clamp(30px,3.4vw,46px)] font-bold leading-none">{latest.winnerTeam || "Champions"}</div>
+            <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold opacity-80">
+              {latest.dateLabel && <span>{latest.dateLabel}</span>}
+              {latest.organizer && <span>· {latest.organizer}</span>}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {latest.rankingsUrl && (
+                <button
+                  type="button"
+                  onClick={() => setOpen(latest.rankingsUrl)}
+                  className="epx-hd inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-[#1a1204] px-5 text-sm font-semibold text-[#f2b84b]"
+                >
+                  Final rankings
                 </button>
-              ))}
+              )}
+              {watchButton(latest, "dark")}
             </div>
-            <div className="p-5">
-              <h3 className="epx-hd text-lg font-bold leading-tight text-[#e8eefc] sm:text-xl">{it.tournamentName}</h3>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {it.winnerTeam && <span className="rounded-full border border-[#f2b84b]/40 bg-[#f2b84b]/10 px-3 py-1 font-bold text-[#f2b84b]">👑 {it.winnerTeam}</span>}
-                {it.dateLabel && <span className="rounded-full border border-[#223158] px-3 py-1 text-[#a4b3d1]">{it.dateLabel}</span>}
-                {it.organizer && <span className="rounded-full border border-[#223158] px-3 py-1 text-[#a4b3d1]">{it.organizer}</span>}
+          </div>
+        </div>
+
+        {/* Earlier tournaments */}
+        <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-4">
+          {older.map((it) => (
+            <article key={it.id} className="flex items-center gap-5 rounded-[20px] border border-[#223158] bg-[#0d1426]/75 p-5 backdrop-blur-md transition-colors hover:border-[#f2b84b]/50">
+              {it.championUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setOpen(it.championUrl)}
+                  aria-label={`${it.tournamentName} winner picture`}
+                  className="h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-black/40"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={it.championUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                </button>
+              ) : (
+                <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-[#f2b84b]/10 text-[#f2b84b]"><Trophy aria-hidden="true" /></span>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold uppercase tracking-[0.1em] text-[#8da0c4]">{it.dateLabel || "Champions"}</div>
+                <div className="epx-hd mt-1 truncate text-xl font-bold text-[#e8eefc]">{it.winnerTeam || it.tournamentName}</div>
+                <div className="truncate text-sm text-[#8da0c4]">{it.tournamentName}{it.organizer ? ` · ${it.organizer}` : ""}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {it.rankingsUrl && (
+                    <button type="button" onClick={() => setOpen(it.rankingsUrl)} className="epx-hd inline-flex min-h-9 cursor-pointer items-center justify-center rounded-full bg-[#2f5bff] px-4 text-xs font-semibold text-white">
+                      Final rankings
+                    </button>
+                  )}
+                  {watchButton(it, "light")}
+                </div>
               </div>
-              {it.youtubeUrl && (() => {
-                const url = normUrl(it.youtubeUrl);
-                const id = ytId(url);
-                const cls = "mt-4 inline-block cursor-pointer rounded-full border border-[#2e4180] px-5 py-2 text-sm font-semibold text-[#e8eefc] hover:border-[#f2b84b] hover:text-[#f2b84b]";
-                return id ? (
-                  <button type="button" className={cls} onClick={() => setVideo(id)}>▶ Watch Grand Final</button>
-                ) : (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className={cls}>▶ Watch Grand Final</a>
-                );
-              })()}
-            </div>
-          </article>
-        ))}
+            </article>
+          ))}
+          <div className="flex flex-1 flex-col justify-center gap-1.5 rounded-[20px] border border-[#223158] bg-[#0d1426]/75 px-6 py-5 backdrop-blur-md">
+            <div className="epx-hd text-lg font-bold text-[#e8eefc]">Every event is archived</div>
+            <div className="text-sm leading-relaxed text-[#8da0c4]">Champion poster, final rankings and the YouTube broadcast are added after each tournament.</div>
+          </div>
+        </div>
       </div>
 
       {video && (

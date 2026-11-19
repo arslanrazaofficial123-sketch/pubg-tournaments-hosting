@@ -1,5 +1,5 @@
 export const TOURNAMENT_CARD = {
-  width: 300,
+  width: 320,
   imageHeight: 169,
   bodyHeight: 132,
 } as const;

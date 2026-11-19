@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { HelpFab } from "@/components/ui";
 import { HeroSection } from "./HeroSection";
+import { HomeRail } from "./HomeRail";
 import { SiteNavigation } from "./SiteNavigation";
 import { getSessionUser, logout } from "@/lib/auth";
 import { fetchUserByUid } from "@/services/api/auth";
@@ -36,11 +37,22 @@ export function PageShell({ children, showHelpFab = true, heroVariant = "compact
     checkUserExists();
   }, []);
 
+  const isHome = heroVariant === "home";
+
   return (
-    <div className={heroVariant === "home" ? "epx-home relative bg-[#070b16]" : "relative"}>
+    <div className={isHome ? "epx-home relative bg-[#070b16]" : "relative"}>
       <SiteNavigation />
-      {heroVariant === "home" && <HeroSection />}
-      {children}
+      {isHome ? (
+        <div className="grid md:grid-cols-[96px_minmax(0,1fr)]">
+          <HomeRail />
+          <div className="min-w-0">
+            <HeroSection />
+            {children}
+          </div>
+        </div>
+      ) : (
+        children
+      )}
       {showHelpFab && <HelpFab />}
     </div>
   );

@@ -7,6 +7,7 @@ import {
   TournamentSections,
 } from "@/features/tournaments";
 import { ShowcaseSection } from "@/features/showcase";
+import { HomeCta, HomeHowItWorks, HomeUcBand } from "@/components/home/HomeSections";
 
 export default function Home() {
   const [activeSize, setActiveSize] = useState<string | null>(null);
@@ -15,10 +16,13 @@ export default function Home() {
     <PageShell heroVariant="home">
       <TournamentFilters activeSize={activeSize} onSizeChange={setActiveSize} />
 
-      <section id="tournaments" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-14 sm:px-6 lg:px-8">
+      <section id="tournaments" className="mx-auto max-w-[1180px] scroll-mt-16 px-5 py-14 sm:px-10">
         <TournamentSections activeSize={activeSize} />
       </section>
       <ShowcaseSection />
+      <HomeUcBand />
+      <HomeHowItWorks />
+      <HomeCta />
     </PageShell>
   );
 }
