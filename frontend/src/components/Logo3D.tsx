@@ -80,7 +80,7 @@ export function Logo3D({ className = "" }: { className?: string }) {
 
   return (
     <div ref={art} className={`relative grid aspect-square place-items-center [perspective:900px] ${className}`}>
-      <div className="pointer-events-none absolute inset-[6%] rounded-full bg-[radial-gradient(circle,rgba(255,122,26,0.38),transparent_66%)] blur-[30px]" />
+      <div className="pointer-events-none absolute inset-[6%] rounded-full bg-[radial-gradient(circle,rgba(242, 184, 75,0.38),transparent_66%)] blur-[30px]" />
       <i className="logo3d-ring pointer-events-none absolute inset-[4%] rounded-full border border-dashed border-accent/35" />
       <i className="logo3d-ring logo3d-ring-b pointer-events-none absolute inset-[16%] rounded-full border border-accent/20" />
       <div ref={el} className="relative aspect-square w-[62%] will-change-transform [transform-style:preserve-3d]" role="img" aria-label="EPIX Esports logo">
@@ -92,7 +92,7 @@ export function Logo3D({ className = "" }: { className?: string }) {
         ))}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={SRC} alt="EPIX Esports" draggable={false}
-          className="absolute inset-0 h-full w-full [filter:drop-shadow(0_0_30px_rgba(255,122,26,0.38))]"
+          className="absolute inset-0 h-full w-full [filter:drop-shadow(0_0_30px_rgba(242, 184, 75,0.38))]"
           style={{ transform: "translateZ(6px)" }} />
       </div>
     </div>

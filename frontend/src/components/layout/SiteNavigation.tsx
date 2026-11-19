@@ -200,7 +200,7 @@ export function SiteNavigation() {
       <nav className="sticky top-0 z-40 border-b border-white/10 bg-black/60 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-2" onClick={() => setIsMenuOpen(false)}>
-            <div className="relative h-9 w-9 drop-shadow-[0_0_12px_rgba(255,122,26,0.5)] sm:h-11 sm:w-11">
+            <div className="relative h-9 w-9 drop-shadow-[0_0_12px_rgba(242, 184, 75,0.5)] sm:h-11 sm:w-11">
               <Image
                 src="/images/logo.png"
                 alt="EPIX Esports logo"
@@ -251,7 +251,7 @@ export function SiteNavigation() {
       <aside
         aria-hidden={!isMenuOpen}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[min(86vw,360px)] flex-col border-l border-white/10 bg-[#0b0806]/95 shadow-2xl shadow-black/60 backdrop-blur-xl transition-transform duration-300 ease-out",
+          "fixed inset-y-0 right-0 z-50 flex w-[min(86vw,360px)] flex-col border-l border-white/10 bg-[#080d1b]/95 shadow-2xl shadow-black/60 backdrop-blur-xl transition-transform duration-300 ease-out",
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
