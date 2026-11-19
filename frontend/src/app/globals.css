@@ -333,3 +333,13 @@ input:focus, select:focus, textarea:focus {
 /* ---- Site-wide redesign: navy / blue / gold ---- */
 h1, h2, h3, h4 { font-family: var(--font-space), var(--font-poppins), system-ui, sans-serif; letter-spacing: -0.015em; }
 button.bg-accent:disabled, a.bg-accent[aria-disabled="true"] { box-shadow: none; filter: grayscale(.4); }
+
+/* Services page ticker */
+@keyframes epxMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.epx-marquee { animation: epxMarquee 38s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .epx-marquee { animation: none; } }
+.epx-hd { font-family: var(--font-space), var(--font-poppins), system-ui, sans-serif; letter-spacing: -0.02em; }
+.epx-ghost {
+  font-family: var(--font-space), var(--font-poppins), sans-serif; font-weight: 700; line-height: .8;
+  color: transparent; -webkit-text-stroke: 1.5px rgba(120, 150, 255, 0.26); user-select: none; pointer-events: none;
+}
