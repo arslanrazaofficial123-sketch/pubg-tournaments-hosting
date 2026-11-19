@@ -160,7 +160,7 @@ export default function ServicesPage() {
           <p className="mt-5 max-w-[560px] text-base text-[#a4b3d1]">Shown here in Epix navy and gold. On your stream they take your tournament&apos;s own colours.</p>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-            <div className="flex gap-2 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0" role="tablist">
+            <div className="grid grid-cols-2 gap-2 lg:flex lg:flex-col" role="tablist">
               {OVERLAYS.map((o, i) => (
                 <button
                   key={o.name}
@@ -168,9 +168,9 @@ export default function ServicesPage() {
                   role="tab"
                   aria-selected={i === active}
                   onClick={() => setActive(i)}
-                  className={`flex shrink-0 cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 text-left transition-colors ${i === active ? "border-[#f2b84b] bg-[#f2b84b]/10" : "border-[#223158] bg-[#0d1426] hover:border-[#4d7cff]"}`}
+                  className={`flex cursor-pointer flex-col items-start gap-1 rounded-xl border px-4 py-3.5 text-left transition-colors lg:flex-row lg:items-center lg:justify-between lg:gap-4 ${i === active ? "border-[#f2b84b] bg-[#f2b84b]/10" : "border-[#223158] bg-[#0d1426] hover:border-[#4d7cff]"}`}
                 >
-                  <span className="epx-hd text-sm font-bold uppercase text-[#e8eefc]">{o.name}</span>
+                  <span className="epx-hd text-sm font-bold uppercase leading-tight text-[#e8eefc]">{o.name}</span>
                   <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7f92b8]">{o.kind}</span>
                 </button>
               ))}
@@ -218,19 +218,32 @@ export default function ServicesPage() {
               <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {shows.map((s, i) => {
                   const id = ytId(s.youtubeUrl);
-                  const thumb = id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : s.championUrl;
+                  const thumb = id ? `https://i.ytimg.com/vi/${id}/maxresdefault.jpg` : s.championUrl;
                   const open = () => (id ? setVideo(id) : window.open(s.youtubeUrl, "_blank", "noopener"));
                   return (
                     <button
                       key={s.id}
                       type="button"
                       onClick={open}
-                      className={`group cursor-pointer overflow-hidden rounded-2xl border border-[#223158] bg-[#0d1426] text-left transition-all hover:-translate-y-1 hover:border-[#f2b84b]/60 ${i === 0 ? "md:col-span-2 lg:row-span-2" : ""}`}
+                      className={`group cursor-pointer overflow-hidden rounded-2xl border border-[#223158] bg-[#0d1426] text-left transition-all hover:-translate-y-1 hover:border-[#f2b84b]/60 ${i === 0 ? "lg:col-span-2 lg:row-span-2" : ""}`}
                     >
                       <div className="relative aspect-video overflow-hidden bg-black/40">
                         {thumb && (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105" />
+                          <img
+                            src={thumb}
+                            alt=""
+                            loading="lazy"
+                            onError={(e) => {
+                              // maxresdefault is missing on some videos; fall back to the always-present hqdefault.
+                              const img = e.currentTarget;
+                              if (id && img.dataset.fallback !== "1") {
+                                img.dataset.fallback = "1";
+                                img.src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+                              }
+                            }}
+                            className="h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
+                          />
                         )}
                         <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white"><span className="text-red-500">●</span> Streamed live</span>
                         <span className="absolute inset-0 m-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#f2b84b] text-[#1a1204] shadow-lg transition-transform group-hover:scale-110">

@@ -79,13 +79,18 @@ export function LanguageSwitcher() {
         .goog-tooltip, .goog-tooltip:hover { display: none !important; }
         .goog-text-highlight { background: none !important; box-shadow: none !important; }
       `}</style>
-      <label className="notranslate fixed bottom-4 left-4 z-[150] flex items-center gap-2 rounded-full border border-border bg-black/80 px-3 py-2 text-xs text-white shadow-lg backdrop-blur" translate="no">
-        <span aria-hidden>🌐</span>
+      <label
+        className="notranslate fixed bottom-4 left-4 z-[150] grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-border bg-black/80 text-white shadow-lg backdrop-blur transition-colors hover:border-[#f2b84b]/60 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#f2b84b]"
+        translate="no"
+        title="Change language"
+      >
+        <span aria-hidden className="pointer-events-none text-[13px] leading-none">🌐</span>
+        <span aria-hidden className="pointer-events-none text-[8px] font-bold uppercase leading-none tracking-wider text-white/75">{lang}</span>
         <select
           aria-label="Language"
           value={lang}
           onChange={(e) => { setCookie(e.target.value); setLang(e.target.value); window.location.reload(); }}
-          className="cursor-pointer bg-transparent font-semibold outline-none"
+          className="absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-full opacity-0"
         >
           {LANGS.map((l) => <option key={l.code} value={l.code} className="text-black">{l.label}</option>)}
         </select>
