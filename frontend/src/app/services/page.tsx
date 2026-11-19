@@ -75,7 +75,7 @@ function StandingsMock() {
       <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.14em]">
         <span className="flex items-center gap-2 text-[#e8eefc]"><span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />Live match</span>
         <span className="rounded border border-[#f2b84b]/50 bg-[#f2b84b]/10 px-2 py-1 text-[#f2b84b]">Zone closing 1:21</span>
-        <span className="text-[#8da0c4]">63 alive</span>
+        <span className="text-[#8da0c4]">16 teams</span>
       </div>
       <div className="mt-4 overflow-hidden rounded-xl border border-[#16213d]">
         <div className="grid grid-cols-[34px_1fr_70px_44px] bg-[#f2b84b] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#1a1204]">

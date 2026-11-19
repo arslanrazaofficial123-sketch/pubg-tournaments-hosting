@@ -7,7 +7,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import ActivityTrackerInitializer from "@/components/ActivityTrackerInitializer";
 import { ErrorMonitor } from "@/components/ErrorMonitor";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { CursorTrail } from "@/components/CursorTrail";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import "./globals.css";
 
@@ -39,7 +38,6 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col antialiased" suppressHydrationWarning>
         <AlertProvider>
           <ErrorMonitor />
-          <CursorTrail />
           <LanguageSwitcher />
           <ErrorBoundary>
             <ActivityTrackerInitializer />

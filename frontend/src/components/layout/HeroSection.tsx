@@ -35,15 +35,14 @@ export function HeroSection() {
   return (
     <section className="relative w-full overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_70%_at_78%_35%,rgba(77,124,255,0.32),transparent_70%),radial-gradient(ellipse_40%_50%_at_10%_90%,rgba(242,184,75,0.14),transparent_70%)]" />
-      <div
-        aria-hidden="true"
-        className="epx-ghost absolute -bottom-6 -right-4 hidden text-[200px] sm:block lg:text-[260px]"
-      >
-        EPIX
-      </div>
-
       <div className="relative mx-auto max-w-[1180px] px-5 pb-20 pt-12 sm:px-10 sm:pt-16">
-        <div className="flex flex-wrap items-center justify-between gap-10">
+        <div
+          aria-hidden="true"
+          className="epx-ghost pointer-events-none absolute right-0 bottom-0 hidden text-[180px] sm:block lg:text-[240px]"
+        >
+          EPIX
+        </div>
+        <div className="relative flex flex-wrap items-center justify-between gap-10">
           <div className="min-w-0 flex-[1_1_460px]">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#2a3b6e] bg-[#4d7cff]/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[#a9c0ff]">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#f2b84b]" />
@@ -73,7 +72,7 @@ export function HeroSection() {
 
           <div className="relative flex flex-[0_1_380px] flex-col items-center">
             <Logo3D className="w-full max-w-[300px]" />
-            <div className="relative -mt-6 w-full max-w-[340px] rounded-[20px] border border-[#223158] bg-[#0d1426]/75 p-5 backdrop-blur-md">
+            <div className="relative mt-1 w-full max-w-[340px] rounded-[20px] border border-[#223158] bg-[#0d1426]/75 p-5 backdrop-blur-md">
               <div className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8da0c4]">
                 {next ? "Next tournament" : "New events every week"}
               </div>
