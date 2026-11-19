@@ -37,7 +37,7 @@ export function PageShell({ children, showHelpFab = true, heroVariant = "compact
   }, []);
 
   return (
-    <div className="relative">
+    <div className={heroVariant === "home" ? "epx-home relative bg-[#070b16]" : "relative"}>
       <SiteNavigation />
       {heroVariant === "home" && <HeroSection />}
       {children}

@@ -313,3 +313,19 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 10px 32px rgba(255,100,20,.38), inset 0 1px 0 rgba(255,255,255,.45);
 }
 .neo-btn-solid:hover { box-shadow: 0 14px 44px rgba(255,100,20,.55), inset 0 1px 0 rgba(255,255,255,.5); }
+
+/* ---- Landing page (home) redesign: navy / blue / gold ---- */
+.epx-home .epx-hd { font-family: var(--font-space), var(--font-poppins), system-ui, sans-serif; letter-spacing: -0.02em; }
+.epx-home nav { background: rgba(7, 11, 22, 0.82); border-color: #16213d; }
+.epx-home nav a.bg-accent {
+  background-image: none !important; background: #2f5bff !important; color: #fff !important;
+  box-shadow: 0 6px 26px rgba(47, 91, 255, 0.4);
+}
+.epx-home nav a.bg-accent:hover { box-shadow: 0 10px 36px rgba(47, 91, 255, 0.6); }
+.epx-home nav span.bg-accent { background: #f2b84b; }
+.epx-home nav button:hover { border-color: rgba(242, 184, 75, 0.5); color: #f2b84b; }
+.epx-home .epx-ghost {
+  font-family: var(--font-space), var(--font-poppins), sans-serif; font-weight: 700; line-height: .8;
+  color: transparent; -webkit-text-stroke: 1.5px rgba(120, 150, 255, 0.26); user-select: none; pointer-events: none;
+}
+.epx-home .logo3d-ring::after { background: #f2b84b; box-shadow: 0 0 14px #f2b84b; }

@@ -24,11 +24,11 @@ export function ShowcaseSection() {
 
   return (
     <section id="hall" className="mx-auto max-w-7xl scroll-mt-16 px-4 py-10 sm:px-6 lg:px-8">
-      <p className="text-xs font-bold uppercase tracking-[.2em] text-accent">Hall of fame</p>
-      <h2 className="mb-6 mt-1 text-2xl font-extrabold uppercase tracking-wide sm:text-3xl">Past Tournaments &amp; Winners</h2>
+      <span className="inline-flex items-center rounded-full border border-[#2a3b6e] bg-[#4d7cff]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a9c0ff]">Hall of fame</span>
+      <h2 className="epx-hd mb-8 mt-3 text-2xl font-bold text-[#e8eefc] sm:text-3xl">Past Tournaments &amp; Winners</h2>
       <div className="grid gap-6 lg:grid-cols-2">
         {items.map((it) => (
-          <article key={it.id} className="overflow-hidden rounded-md border border-white/10 bg-white/[0.045] backdrop-blur-md transition-all duration-300 hover:border-accent hover:shadow-[0_0_40px_rgba(255,122,26,0.12)]">
+          <article key={it.id} className="overflow-hidden rounded-[24px] border border-[#223158] bg-[#0d1426] transition-all duration-300 hover:border-[#f2b84b]/60">
             <div className="grid grid-cols-2">
               {[{ u: it.championUrl, l: "Winner" }, { u: it.rankingsUrl, l: "Final rankings" }].map((p) => (
                 <button key={p.l} type="button" disabled={!p.u} onClick={() => p.u && setOpen(p.u)}
@@ -43,16 +43,16 @@ export function ShowcaseSection() {
               ))}
             </div>
             <div className="p-5">
-              <h3 className="text-lg font-extrabold uppercase leading-tight sm:text-xl">{it.tournamentName}</h3>
+              <h3 className="epx-hd text-lg font-bold leading-tight text-[#e8eefc] sm:text-xl">{it.tournamentName}</h3>
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                {it.winnerTeam && <span className="rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-1 font-bold text-yellow-300">👑 {it.winnerTeam}</span>}
-                {it.dateLabel && <span className="rounded-lg border border-border px-3 py-1 opacity-80">{it.dateLabel}</span>}
-                {it.organizer && <span className="rounded-lg border border-border px-3 py-1 opacity-80">{it.organizer}</span>}
+                {it.winnerTeam && <span className="rounded-full border border-[#f2b84b]/40 bg-[#f2b84b]/10 px-3 py-1 font-bold text-[#f2b84b]">👑 {it.winnerTeam}</span>}
+                {it.dateLabel && <span className="rounded-full border border-[#223158] px-3 py-1 text-[#a4b3d1]">{it.dateLabel}</span>}
+                {it.organizer && <span className="rounded-full border border-[#223158] px-3 py-1 text-[#a4b3d1]">{it.organizer}</span>}
               </div>
               {it.youtubeUrl && (() => {
                 const url = normUrl(it.youtubeUrl);
                 const id = ytId(url);
-                const cls = "mt-4 inline-block cursor-pointer rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent";
+                const cls = "mt-4 inline-block cursor-pointer rounded-full border border-[#2e4180] px-5 py-2 text-sm font-semibold text-[#e8eefc] hover:border-[#f2b84b] hover:text-[#f2b84b]";
                 return id ? (
                   <button type="button" className={cls} onClick={() => setVideo(id)}>▶ Watch Grand Final</button>
                 ) : (

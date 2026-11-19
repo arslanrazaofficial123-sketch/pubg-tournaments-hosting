@@ -55,9 +55,9 @@ export function TournamentCarousel({
     return (
       <section id={sectionId} className="scroll-mt-24">
         <SectionHeader title={title} subtitle={subtitle} />
-        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-white/10 bg-bg-secondary/40 py-16 text-center">
+        <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-[#223158] bg-[#0d1426]/60 py-16 text-center">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(300px_160px_at_50%_-20%,rgba(59,130,246,.12),transparent_65%)]" />
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-accent/25 bg-accent/10 text-accent shadow-lg shadow-accent/10">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[#f2b84b]/30 bg-[#f2b84b]/10 text-[#f2b84b]">
             <Gamepad2 size={28} />
           </div>
           <p className="text-lg font-bold text-text-primary/70">
@@ -100,8 +100,8 @@ export function TournamentCarousel({
             ))}
           </div>
         </div>
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-linear-to-r from-bg-primary to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-bg-primary to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-linear-to-r from-[#070b16] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-[#070b16] to-transparent" />
       </div>
     </section>
   );

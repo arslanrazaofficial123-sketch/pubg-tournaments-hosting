@@ -19,11 +19,11 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex h-[295px] w-[240px] shrink-0 flex-col overflow-hidden rounded-md border border-white/10 bg-white/[0.045] backdrop-blur-md text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-accent/50 hover:shadow-xl hover:shadow-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:h-[320px] sm:w-[300px]"
+      className="group relative flex h-[295px] w-[240px] shrink-0 flex-col overflow-hidden rounded-[20px] border border-[#223158] bg-gradient-to-b from-[#12204f] to-[#0a1020] text-left transition-all duration-300 hover:-translate-y-1.5 hover:border-[#4d7cff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f2b84b] sm:h-[320px] sm:w-[300px]"
     >
-      <span className="pointer-events-none absolute inset-x-4 top-0 z-10 h-px bg-linear-to-r from-transparent via-accent/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 z-10 h-px bg-linear-to-r from-transparent via-[#f2b84b]/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-bg-primary/40">
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#070b16]/40">
         <Image
           src={tournament.images.card}
           alt={tournament.title}
@@ -31,13 +31,13 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
           sizes="(max-width: 640px) 240px, 300px"
           className="object-contain transition-transform duration-500 group-hover:scale-110"
         />
-        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-bg-secondary via-bg-secondary/10 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#0a1020] via-[#0a1020]/10 to-transparent" />
 
-        <div className="absolute left-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-bg-primary/85 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-accent backdrop-blur-sm">
+        <div className="absolute left-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-[#f2b84b]/40 bg-[#070b16]/85 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#f2b84b] backdrop-blur-sm">
           <Trophy size={11} />
           {tournament.prizePool}
         </div>
-        <div className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-bg-primary/85 px-2.5 py-1 text-[10px] font-bold text-text-primary/85 backdrop-blur-sm">
+        <div className="absolute right-2 top-2 z-10 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#070b16]/85 px-2.5 py-1 text-[10px] font-bold text-[#e8eefc]/85 backdrop-blur-sm">
           <Users size={11} />
           {tournament.registeredTeams}/{tournament.maxTeams}
         </div>
@@ -48,13 +48,13 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
           <StatusBadge status={tournament.status} />
         </div>
         <h3
-          className="truncate text-xs font-semibold leading-snug text-text-primary transition-colors group-hover:text-accent sm:text-sm"
+          className="truncate text-xs font-semibold leading-snug text-[#e8eefc] transition-colors group-hover:text-[#f2b84b] sm:text-sm"
           title={tournament.title}
         >
           {tournament.title}
         </h3>
-        <p className="flex items-center gap-1.5 truncate text-[10px] text-text-primary/60 sm:text-xs">
-          <Calendar size={12} className="shrink-0 text-accent/70" />
+        <p className="flex items-center gap-1.5 truncate text-[10px] text-[#8da0c4] sm:text-xs">
+          <Calendar size={12} className="shrink-0 text-[#f2b84b]/70" />
           Deadline: {tournament.registrationDeadline}
         </p>
 
@@ -66,7 +66,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
                   "h-full rounded-full transition-all duration-700",
                   slotPct >= 100
                     ? "bg-linear-to-r from-emerald-400 to-emerald-500"
-                    : "bg-linear-to-r from-accent to-accent-2",
+                    : "bg-linear-to-r from-[#2f5bff] to-[#f2b84b]",
                 )}
                 style={{ width: `${slotPct}%` }}
               />
@@ -74,7 +74,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
             <span
               className={cn(
                 "text-[9px] font-bold tabular-nums",
-                slotPct >= 100 ? "text-emerald-400" : "text-accent/80",
+                slotPct >= 100 ? "text-emerald-400" : "text-[#f2b84b]/80",
               )}
             >
               {slotPct}%
@@ -90,7 +90,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
               Tournament Live
             </span>
           ) : tournament.status === "upcoming" ? (
-            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-accent/25 bg-accent/10 px-2.5 py-1 text-[10px] font-semibold text-accent whitespace-nowrap cursor-not-allowed sm:px-3.5 sm:py-1.5 sm:text-xs">
+            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-[#f2b84b]/25 bg-[#f2b84b]/10 px-2.5 py-1 text-[10px] font-semibold text-[#f2b84b] whitespace-nowrap cursor-not-allowed sm:px-3.5 sm:py-1.5 sm:text-xs">
               Registrations Open Soon
             </span>
           ) : tournament.status === "ended" ? (
@@ -98,7 +98,7 @@ export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
               Registrations Closed
             </span>
           ) : (
-            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-linear-to-r from-accent to-accent-2 px-2.5 py-1 text-[10px] font-bold text-bg-primary shadow-md shadow-accent/25 transition-all group-hover:shadow-accent/50 whitespace-nowrap cursor-pointer sm:px-3.5 sm:py-1.5 sm:text-xs">
+            <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#2f5bff] px-2.5 py-1 text-[10px] font-bold text-white shadow-md shadow-[#2f5bff]/30 transition-all group-hover:shadow-[#2f5bff]/60 whitespace-nowrap cursor-pointer sm:px-3.5 sm:py-1.5 sm:text-xs">
               Register Now
             </span>
           )}

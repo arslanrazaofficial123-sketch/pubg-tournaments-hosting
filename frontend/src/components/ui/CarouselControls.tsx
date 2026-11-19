@@ -37,10 +37,10 @@ function CarouselButton({
       disabled={disabled}
       aria-label={direction === "prev" ? "Previous slide" : "Next slide"}
       className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-full border border-border bg-bg-secondary/60 text-text-primary backdrop-blur transition-all duration-300",
+        "flex h-10 w-10 items-center justify-center rounded-full border border-[#223158] bg-[#0d1426]/80 text-[#e8eefc] backdrop-blur transition-all duration-300",
         disabled
           ? "cursor-not-allowed opacity-30"
-          : "hover:-translate-y-0.5 hover:border-accent hover:bg-accent/15 hover:text-accent hover:shadow-lg hover:shadow-accent/20 active:scale-95",
+          : "hover:-translate-y-0.5 hover:border-[#f2b84b] hover:bg-[#f2b84b]/10 hover:text-[#f2b84b] active:scale-95",
       )}
     >
       <svg

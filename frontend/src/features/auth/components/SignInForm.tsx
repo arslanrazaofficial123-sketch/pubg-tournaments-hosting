@@ -4,7 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { isLoggedIn as checkLoggedIn, setSession } from "@/lib/auth";
-import { ApiError, googleSignIn, loginAccount, registerEmailAccount } from "@/services/api";
+import {
+  ApiError,
+  googleSignIn,
+  loginAccount,
+  registerEmailAccount,
+} from "@/services/api";
 import { AuthFormLayout } from "./AuthFormLayout";
 import { GoogleSignInButton } from "./GoogleSignInButton";
 
@@ -17,21 +22,24 @@ interface SignInFormProps {
 
 export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
   const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [confirm, setConfirm] = useState("");
-  const isSignup = mode === "signup";
 
   useEffect(() => {
     if (!onSuccess && checkLoggedIn()) {
       router.replace("/dashboard");
     }
   }, [router, onSuccess]);
+
+  const switchMode = (next: "signin" | "signup") => {
+    setMode(next);
+    setSubmitError("");
+  };
 
   const handleGoogleSuccess = useCallback(
     async (credential: string) => {
@@ -60,7 +68,7 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
     setSubmitError(message);
   }, []);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError("");
 
@@ -78,24 +86,19 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
       setSubmitError("Password is required.");
       return;
     }
-
-    if (isSignup) {
-      if (password.length < 6) {
-        setSubmitError("Password must be at least 6 characters.");
-        return;
-      }
-      if (password !== confirm) {
-        setSubmitError("Passwords do not match.");
-        return;
-      }
+    if (mode === "signup" && password.length < 6) {
+      setSubmitError("Password must be at least 6 characters.");
+      return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const user = isSignup
-        ? await registerEmailAccount({ email: normalizedEmail, password })
-        : await loginAccount({ email: normalizedEmail, password });
+      const user =
+        mode === "signup"
+          ? await registerEmailAccount({ email: normalizedEmail, password })
+          : await loginAccount({ email: normalizedEmail, password });
+
       setSession(user);
       onSuccess?.();
       router.replace("/dashboard");
@@ -103,16 +106,26 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
       if (error instanceof ApiError) {
         setSubmitError(error.message);
       } else {
-        setSubmitError(isSignup ? "Could not create the account. Please try again." : "Login failed. Please try again.");
+        setSubmitError(
+          mode === "signup"
+            ? "Could not create the account. Please try again."
+            : "Login failed. Please try again.",
+        );
       }
       setIsSubmitting(false);
     }
   };
 
+  const isSignup = mode === "signup";
+
   return (
     <AuthFormLayout
       title={isSignup ? "Create account" : "Login"}
-      subtitle={isSignup ? "Sign up with your email and a password" : "Welcome back! Sign in to continue"}
+      subtitle={
+        isSignup
+          ? "Just an email and password — your PUBG UID comes later"
+          : "Welcome back! Sign in to continue"
+      }
       footerText=""
       footerLinkText=""
       footerLinkHref=""
@@ -143,7 +156,7 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
         </div>
       </div>
 
-      <form onSubmit={handleEmailLogin} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
             Email
@@ -192,22 +205,6 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           </div>
         </div>
 
-        {isSignup && (
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-text-primary/50 uppercase tracking-wider block">
-              Confirm password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Re-enter password"
-              value={confirm}
-              onChange={(e) => { setConfirm(e.target.value); setSubmitError(""); }}
-              className="w-full bg-bg-primary border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-primary/25"
-            />
-          </div>
-        )}
-
         {submitError && (
           <p className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {submitError}
@@ -219,18 +216,26 @@ export function SignInForm({ onSuccess, isModal = false }: SignInFormProps) {
           disabled={isSubmitting}
           className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-text-primary transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
-          {isSubmitting ? (isSignup ? "Creating account..." : "Signing in...") : (isSignup ? "Create account" : "Login with Email")}
+          {isSubmitting
+            ? isSignup
+              ? "Creating account..."
+              : "Signing in..."
+            : isSignup
+              ? "Create account"
+              : "Login with Email"}
         </button>
       </form>
 
-      <div className="mt-5 text-center text-sm text-text-primary/60">
-        {isSignup ? "Already have an account?" : "New here?"}{" "}
+      <div className="mt-4 rounded-xl border border-border bg-bg-primary/40 p-3 text-center">
+        <p className="text-xs text-text-primary/50">
+          {isSignup ? "Already have an account?" : "New here? Create a free account."}
+        </p>
         <button
           type="button"
-          onClick={() => { setMode(isSignup ? "login" : "signup"); setSubmitError(""); setConfirm(""); }}
-          className="font-bold text-accent hover:underline cursor-pointer"
+          onClick={() => switchMode(isSignup ? "signin" : "signup")}
+          className="mt-2 w-full rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-xs font-bold uppercase tracking-wider text-accent transition-colors hover:bg-accent/20 cursor-pointer"
         >
-          {isSignup ? "Login" : "Create account"}
+          {isSignup ? "Login instead" : "Create account"}
         </button>
       </div>
 

@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import type { Tournament } from "@/types/tournament";
 
 const STATUS_STYLES = {
-  registration_open: "bg-cyan-500/20 text-cyan-400 border border-cyan-400/20",
-  upcoming: "bg-accent/20 text-accent border border-accent/25 shadow-sm shadow-accent/10",
+  registration_open: "bg-[#4d7cff]/15 text-[#a9c0ff] border border-[#4d7cff]/30",
+  upcoming: "bg-[#f2b84b]/15 text-[#f2b84b] border border-[#f2b84b]/25",
   ongoing: "bg-emerald-500/20 text-emerald-400 border border-emerald-400/20",
   ended: "bg-text-primary/10 text-text-primary/60 border border-white/10",
 } as const;

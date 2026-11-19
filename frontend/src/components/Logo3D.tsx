@@ -20,6 +20,7 @@ export function Logo3D({ className = "" }: { className?: string }) {
       return;
     }
     let rx = 0, ry = 0, tx = 0, ty = 0, hover = false, raf = 0;
+    let gyro = false, baseBeta: number | null = null, baseGamma = 0;
     const t0 = performance.now();
     const move = (ev: PointerEvent) => {
       const r = a.getBoundingClientRect();
@@ -30,9 +31,38 @@ export function Logo3D({ className = "" }: { className?: string }) {
     const leave = () => { hover = false; };
     a.addEventListener("pointermove", move);
     a.addEventListener("pointerleave", leave);
+    // Phone tilt: the logo follows the way the phone is rotated.
+    const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v));
+    const onTilt = (ev: DeviceOrientationEvent) => {
+      if (ev.beta == null || ev.gamma == null) return;
+      if (baseBeta === null) { baseBeta = ev.beta; baseGamma = ev.gamma; }
+      gyro = true;
+      ty = clamp((ev.gamma - baseGamma) * 1.1, 38);
+      tx = clamp(-(ev.beta - baseBeta) * 0.9, 30);
+    };
+    let tiltOn = false;
+    const startTilt = () => {
+      if (tiltOn) return;
+      tiltOn = true;
+      window.addEventListener("deviceorientation", onTilt);
+    };
+    const DOE = (window as unknown as { DeviceOrientationEvent?: { requestPermission?: () => Promise<string> } }).DeviceOrientationEvent;
+    const touchDevice = window.matchMedia("(pointer: coarse)").matches;
+    let askOnTouch: (() => void) | null = null;
+    if (touchDevice && DOE) {
+      if (typeof DOE.requestPermission === "function") {
+        // iPhone / iPad: permission can only be asked from a tap.
+        askOnTouch = () => {
+          DOE.requestPermission!().then((r) => { if (r === "granted") startTilt(); }).catch(() => {});
+        };
+        window.addEventListener("pointerup", askOnTouch, { once: true });
+      } else {
+        startTilt();
+      }
+    }
     const frame = (t: number) => {
       const s = (t - t0) / 1000;
-      if (!hover) { tx = Math.sin(s * 0.7) * 8; ty = Math.sin(s * 0.5) * 26; }
+      if (!hover && !gyro) { tx = Math.sin(s * 0.7) * 8; ty = Math.sin(s * 0.5) * 26; }
       rx += (tx - rx) * 0.08;
       ry += (ty - ry) * 0.08;
       e.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
@@ -41,6 +71,8 @@ export function Logo3D({ className = "" }: { className?: string }) {
     raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
+      window.removeEventListener("deviceorientation", onTilt);
+      if (askOnTouch) window.removeEventListener("pointerup", askOnTouch);
       a.removeEventListener("pointermove", move);
       a.removeEventListener("pointerleave", leave);
     };

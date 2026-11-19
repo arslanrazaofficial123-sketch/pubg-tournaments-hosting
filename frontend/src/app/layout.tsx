@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, Space_Grotesk } from "next/font/google";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { AlertProvider } from "@/components/ui";
 import { Analytics } from "@vercel/analytics/react";
@@ -17,6 +17,12 @@ const poppins = Poppins({
   weight: ["300", "400", "500", "600", "700"],
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "EPIX Esports",
   description:
@@ -29,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${poppins.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${poppins.variable} ${spaceGrotesk.variable} h-full`} suppressHydrationWarning>
       <body className="flex min-h-full flex-col antialiased" suppressHydrationWarning>
         <AlertProvider>
           <ErrorMonitor />
